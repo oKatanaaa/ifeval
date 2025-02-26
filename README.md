@@ -24,16 +24,6 @@ cd ifeval
 pip install .
 ```
 
-## Requirements
-
-- Python 3.8+
-- Dependencies:
-  - langdetect
-  - nltk
-  - immutabledict
-  - absl-py
-  - datasets (for loading default evaluation datasets)
-
 ## Usage
 
 ### Basic Usage
