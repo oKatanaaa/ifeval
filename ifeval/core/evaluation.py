@@ -57,13 +57,13 @@ class Evaluator:
         is_following_list = []
 
         for index, instruction_id in enumerate(instruction_list):
-            instruction_cls = self.registry.get_instruction(instruction_id)
-            instruction = instruction_cls(instruction_id)
+            kwargs = inp.kwargs[index] or {}
+            instruction = self.registry.create_instruction(instruction_id, **kwargs)
 
-            instruction.build_description(**inp.kwargs[index])
+            # Handle prompt-dependent instructions if needed
             args = instruction.get_instruction_args()
-            if args and "prompt" in args:
-                instruction.build_description(prompt=inp.prompt)
+            if args and "prompt" in args and hasattr(instruction, "_prompt"):
+                setattr(instruction, "_prompt", inp.prompt)
 
             if response.strip() and instruction.check_following(response):
                 is_following_list.append(True)
@@ -115,13 +115,13 @@ class Evaluator:
         is_following_list = []
 
         for index, instruction_id in enumerate(instruction_list):
-            instruction_cls = self.registry.get_instruction(instruction_id)
-            instruction = instruction_cls(instruction_id)
+            kwargs = inp.kwargs[index] or {}
+            instruction = self.registry.create_instruction(instruction_id, **kwargs)
 
-            instruction.build_description(**inp.kwargs[index])
+            # Handle prompt-dependent instructions if needed
             args = instruction.get_instruction_args()
-            if args and "prompt" in args:
-                instruction.build_description(prompt=inp.prompt)
+            if args and "prompt" in args and hasattr(instruction, "_prompt"):
+                setattr(instruction, "_prompt", inp.prompt)
 
             is_following = False
             for r in all_responses:

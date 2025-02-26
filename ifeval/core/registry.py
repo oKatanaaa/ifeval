@@ -45,3 +45,22 @@ class InstructionRegistry:
         if instruction_id not in self._instructions:
             raise ValueError(f"Unknown instruction ID: {instruction_id}")
         return self._instructions[instruction_id]
+        
+    def create_instruction(self, instruction_id: str, **kwargs) -> BaseInstruction:
+        """Create an instruction instance by ID with given parameters.
+        
+        Args:
+            instruction_id: The ID of the instruction to create.
+            **kwargs: Parameters to pass to the instruction constructor.
+            
+        Returns:
+            An instance of the instruction class.
+            
+        Raises:
+            ValueError: If the instruction ID is not registered.
+        """
+        if instruction_id not in self._instructions:
+            raise ValueError(f"Unknown instruction ID: {instruction_id}")
+        
+        instruction_cls = self._instructions[instruction_id]
+        return instruction_cls(**kwargs)

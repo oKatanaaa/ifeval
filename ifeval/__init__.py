@@ -13,7 +13,18 @@ from ifeval.core import (
 from ifeval.languages import (
     BaseLanguageProcessor,
     LanguageRegistry,
-    EnglishProcessor
+    EnglishProcessor,
+    RussianProcessor,
+    # Generic instructions
+    PlaceholderChecker,
+    BulletListChecker,
+    HighlightSectionChecker,
+    ParagraphChecker,
+    JsonFormat,
+    TwoResponsesChecker,
+    TitleChecker,
+    CommaChecker,
+    QuotationChecker
 )
 from ifeval.utils import Config
 
@@ -31,6 +42,18 @@ __all__ = [
     'BaseLanguageProcessor',
     'LanguageRegistry',
     'EnglishProcessor',
+    'RussianProcessor',
+    
+    # Generic Instructions
+    'PlaceholderChecker',
+    'BulletListChecker',
+    'HighlightSectionChecker',
+    'ParagraphChecker',
+    'JsonFormat',
+    'TwoResponsesChecker',
+    'TitleChecker',
+    'CommaChecker',
+    'QuotationChecker',
     
     # Utils
     'Config',
