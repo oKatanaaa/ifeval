@@ -4,18 +4,25 @@ IFEval is a framework for evaluating how well language models follow specific in
 
 ## Overview
 
-This framework allows you to:
+This framework is a refactoring of the original instruction following evaluation code, which was cumbersome, hard to extend, and difficult to use. IFEval provides a clean, programmatic way (via both Python API and CLI) to evaluate model responses, with intuitive interfaces and elegant formatting of results.
+
+With IFEval, you can:
 
 - Evaluate models on their ability to follow specific types of instructions
 - Support multiple languages with a unified architecture
 - Easily extend to new instruction types
 - Run both strict and loose evaluations
+- Use default benchmark datasets or your own custom data
 
 ## Installation
 
 ```bash
-# TODO: Add installation instructions
-pip install ifeval
+# Clone the repository
+git clone https://github.com/oKatanaaa/ifeval.git
+cd ifeval
+
+# Install the package
+pip install .
 ```
 
 ## Requirements
@@ -26,37 +33,74 @@ pip install ifeval
   - nltk
   - immutabledict
   - absl-py
+  - datasets (for loading default evaluation datasets)
 
 ## Usage
 
 ### Basic Usage
 
 ```python
-from ifeval import Evaluator
+from ifeval.core.evaluation import Evaluator, InputExample
 from ifeval.languages.en.instructions import instruction_registry
+from ifeval.utils.io import read_input_examples, read_responses
 
 # Create evaluator
 evaluator = Evaluator(instruction_registry)
 
+# Load input examples and responses
+input_examples = read_input_examples("path/to/prompts.jsonl")
+responses = read_responses("path/to/responses.jsonl")
+
 # Run evaluation
-strict_accuracy, loose_accuracy = evaluator.evaluate_dataset(
-    "path/to/prompts.jsonl",
-    "path/to/responses.jsonl",
-    "path/to/output_dir"
-)
+report, all_outputs = evaluator.evaluate(input_examples, responses)
+
+# Print report
+evaluator.print_report(report)
+
+# Access accuracies
+strict_accuracy = report["eval_results_strict"]["prompt_accuracy"]
+loose_accuracy = report["eval_results_loose"]["prompt_accuracy"]
 
 print(f"Strict accuracy: {strict_accuracy}")
 print(f"Loose accuracy: {loose_accuracy}")
 ```
 
+### Using Default Datasets from HuggingFace
+
+```python
+from ifeval.core.evaluation import Evaluator
+from ifeval.languages.en.instructions import instruction_registry
+from ifeval.datasets import get_default_dataset
+
+# Create evaluator
+evaluator = Evaluator(instruction_registry)
+
+# Load default dataset (English by default)
+input_examples = get_default_dataset("en")
+
+# Get responses from your model (example)
+responses = {ex.prompt: your_model.generate(ex.prompt) for ex in input_examples}
+
+# Run evaluation
+report, all_outputs = evaluator.evaluate(input_examples, responses)
+```
+
 ### Command-line Interface
 
 ```bash
+# Using custom data
 python -m ifeval.cli \
     --input_data path/to/prompts.jsonl \
     --input_response_data path/to/responses.jsonl \
     --output_dir path/to/output_dir \
     --language en \
+    --verbose
+
+# Using default datasets
+python -m ifeval.cli \
+    --input_response_data path/to/responses.jsonl \
+    --output_dir path/to/output_dir \
+    --language ru \  # Use Russian dataset
     --verbose
 ```
 
@@ -217,15 +261,13 @@ The loose evaluation applies various transformations to the response to see if a
 - Replacing certain characters
 - Combinations of the above
 
-## Citation
+## Acknowledgements
 
-If you use this project, please cite:
+This project is a refactoring and extension of the following works:
 
-```bibtex
-@article{zhou2023instruction,
-  title={Instruction-Following Evaluation for Large Language Models},
-  author={Zhou, Jeffrey and Lu, Tianjian and Mishra, Swaroop and Brahma, Siddhartha and Basu, Sujoy and Luan, Yi and Zhou, Denny and Hou, Le},
-  journal={arXiv preprint arXiv:2311.07911},
-  year={2023}
-}
-```
+- [google-research/instruction_following_eval](https://github.com/google-research/google-research/tree/master/instruction_following_eval) - The original instruction following evaluation codebase developed by Google Research
+- [NLP-Core-Team/ruIFEval](https://github.com/NLP-Core-Team/ruIFEval) - Russian version of IFEval that provided the Russian evaluation dataset and instructions
+
+## License
+
+This project is licensed under the Apache 2.0 License.
