@@ -16,21 +16,7 @@ from ifeval.core.instructions import BaseInstruction
 from ifeval.core.registry import InstructionRegistry
 from ifeval.languages.en.constants import (
     COMPARISON_RELATION,
-    CONSTRAINED_RESPONSE_OPTIONS,
-    ENDING_OPTIONS,
-    STARTER_OPTIONS,
-    POSTSCRIPT_MARKER,
-    SECTION_SPLITER,
-    NUM_HIGHLIGHTED_SECTIONS,
-    NUM_PARAGRAPHS,
-    NUM_SECTIONS,
-    KEYWORD_FREQUENCY,
-    LETTER_FREQUENCY,
-    ALL_CAPITAL_WORD_FREQUENCY,
-    NUM_WORDS_LOWER_LIMIT,
-    NUM_WORDS_UPPER_LIMIT,
-    NUM_BULLETS,
-    generate_keywords
+    CONSTRAINED_RESPONSE_OPTIONS
 )
 from ifeval.languages.en.processor import EnglishProcessor
 from ifeval.languages.generic import (

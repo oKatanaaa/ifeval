@@ -1,36 +1,18 @@
 """Russian language instruction implementations."""
 
 import collections
-import json
 import random
 import re
-import string
-from typing import Dict, List, Optional, Sequence, Union, Set, Any
 
 from absl import logging
 
 from ftlangdetect import detect
-import nltk
 
 from ifeval.core.instructions import BaseInstruction
 from ifeval.core.registry import InstructionRegistry
 from ifeval.languages.ru.constants import (
     COMPARISON_RELATION,
-    CONSTRAINED_RESPONSE_OPTIONS,
-    ENDING_OPTIONS,
-    STARTER_OPTIONS,
-    POSTSCRIPT_MARKER,
-    SECTION_SPLITER,
-    NUM_HIGHLIGHTED_SECTIONS,
-    NUM_PARAGRAPHS,
-    NUM_SECTIONS,
-    KEYWORD_FREQUENCY,
-    LETTER_FREQUENCY,
-    ALL_CAPITAL_WORD_FREQUENCY,
-    NUM_WORDS_LOWER_LIMIT,
-    NUM_WORDS_UPPER_LIMIT,
-    NUM_BULLETS,
-    generate_keywords
+    CONSTRAINED_RESPONSE_OPTIONS
 )
 from ifeval.languages.ru.processor import RussianProcessor
 from ifeval.languages.generic import (
