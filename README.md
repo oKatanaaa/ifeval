@@ -11,7 +11,6 @@ With IFEval, you can:
 - Evaluate models on their ability to follow specific types of instructions
 - Support multiple languages with a unified architecture
 - Easily extend to new instruction types
-- Run both strict and loose evaluations
 - Use default benchmark datasets or your own custom data
 
 ## Installation
@@ -181,65 +180,114 @@ IFEval currently supports the following instruction types for English:
 
 ### Adding New Instruction Types
 
-Create a new instruction class inheriting from `BaseInstruction`:
+#### Generic Instructions
+
+For instruction types that are language-agnostic, add them to the generic module:
 
 ```python
 from ifeval.core.instructions import BaseInstruction
 
-class MyNewInstruction(BaseInstruction):
-    def build_description(self, **kwargs):
-        # Store parameters and build description
-        # ...
-        return description
+class MyGenericInstruction(BaseInstruction):
+    def __init__(self, parameter1, parameter2):
+        # Store parameters
+        self._parameter1 = parameter1
+        self._parameter2 = parameter2
         
     def get_instruction_args(self):
         # Return stored parameters
-        # ...
+        return {
+            "parameter1": self._parameter1,
+            "parameter2": self._parameter2
+        }
         
     def get_instruction_args_keys(self):
         # Return list of parameter keys
-        # ...
+        return ["parameter1", "parameter2"]
         
     def check_following(self, value):
         # Check if response follows instruction
+        # Use language-agnostic logic (e.g., regex patterns)
         # ...
         return True/False
 ```
 
-Register the instruction:
+Then register it in each language-specific instruction module:
+
+```python
+# In ifeval/languages/en/instructions.py and ifeval/languages/ru/instructions.py
+from ifeval.languages.generic import MyGenericInstruction
+
+instruction_registry.register("my_category:my_instruction")(MyGenericInstruction)
+```
+
+#### Language-Specific Instructions
+
+For instructions that need language-specific processing:
+
+```python
+from ifeval.core.instructions import BaseInstruction
+
+class MyLanguageSpecificInstruction(BaseInstruction):
+    def __init__(self, parameter1, parameter2):
+        # Store parameters
+        self._parameter1 = parameter1
+        self._parameter2 = parameter2
+        
+    def get_instruction_args(self):
+        # Return stored parameters
+        return {
+            "parameter1": self._parameter1,
+            "parameter2": self._parameter2
+        }
+        
+    def get_instruction_args_keys(self):
+        # Return list of parameter keys
+        return ["parameter1", "parameter2"]
+        
+    def check_following(self, value):
+        # Use language processor to analyze the text
+        # processor.count_words(value), processor.lemmatize(text), etc.
+        # ...
+        return True/False
+```
+
+Register in the specific language module:
 
 ```python
 from ifeval.core.registry import InstructionRegistry
 
-registry = InstructionRegistry()
-registry.register("my_category:my_instruction")(MyNewInstruction)
+# Specific language registry (already defined in language module)
+instruction_registry.register("my_category:my_instruction")(MyLanguageSpecificInstruction)
 ```
 
 ### Adding New Languages
 
-Create a language processor inheriting from `BaseLanguageProcessor`:
+1. Create a language processor inheriting from `BaseLanguageProcessor`:
 
 ```python
 from ifeval.languages.language_processor import BaseLanguageProcessor
 
 class MyLanguageProcessor(BaseLanguageProcessor):
     def detect_language(self, text):
-        # ...
+        # Implement language detection
         
     def count_sentences(self, text):
-        # ...
+        # Count sentences using language-specific rules
         
     def count_words(self, text):
-        # ...
+        # Count words using language-specific tokenization
         
     def split_into_sentences(self, text):
-        # ...
+        # Split text into sentences
         
     def lemmatize(self, text):
-        # ...
+        # Lemmatize words according to language rules
+        
+    def word_tokenize(self, text):
+        # Tokenize text into words
 ```
 
-Register the processor:
+2. Register the processor:
 
 ```python
 from ifeval.languages.language_registry import LanguageRegistry
@@ -247,6 +295,50 @@ from ifeval.languages.language_registry import LanguageRegistry
 language_registry = LanguageRegistry()
 language_registry.register("my_lang")(MyLanguageProcessor)
 ```
+
+3. Create a language-specific constants module:
+
+```python
+# ifeval/languages/my_lang/constants.py
+
+# Define language-specific constants
+COMPARISON_RELATION = ("less than", "at least")  # Translated to your language
+CONSTRAINED_RESPONSE_OPTIONS = ("My answer is yes.", "My answer is no.")  # Translated
+```
+
+4. Create a language-specific instructions module:
+
+```python
+# ifeval/languages/my_lang/instructions.py
+
+from ifeval.core.registry import InstructionRegistry
+from ifeval.languages.my_lang.processor import MyLanguageProcessor
+from ifeval.languages.my_lang.constants import COMPARISON_RELATION, CONSTRAINED_RESPONSE_OPTIONS
+from ifeval.languages.generic import (
+    PlaceholderChecker,
+    BulletListChecker,
+    # Import all generic instruction classes
+)
+
+# Create registry and processor instances
+instruction_registry = InstructionRegistry()
+processor = MyLanguageProcessor()
+
+# Define instruction type prefixes
+_KEYWORD = "keywords:"
+_LANGUAGE = "language:"
+# Define all prefix constants
+
+# Register generic instructions
+instruction_registry.register(_CONTENT + "number_placeholders")(PlaceholderChecker)
+instruction_registry.register(_FORMAT + "multiple_sections")(SectionChecker)
+# Register all generic instructions
+
+# Implement language-specific instructions
+# ...
+```
+
+5. Register the language in the main package init file.
 
 ## Evaluation Methods
 
