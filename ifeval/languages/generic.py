@@ -21,17 +21,14 @@ class PlaceholderChecker(BaseInstruction):
     represented by square brackets, such as [address]."
     """
     
-    def __init__(self, num_placeholders=None):
+    def __init__(self, num_placeholders):
         """Initialize the placeholder checker.
         
         Args:
             num_placeholders: An integer denoting the minimum number of
-                placeholders required in the response. If None, a random value
-                will be used.
+                placeholders required in the response.
         """
         self._num_placeholders = num_placeholders
-        if self._num_placeholders is None or self._num_placeholders < 0:
-            self._num_placeholders = random.randint(1, DEFAULT_NUM_PLACEHOLDERS)
     
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -66,17 +63,14 @@ class BulletListChecker(BaseInstruction):
     * This is point 2"
     """
     
-    def __init__(self, num_bullets=None):
+    def __init__(self, num_bullets):
         """Initialize the bullet list checker.
         
         Args:
             num_bullets: An integer specifying the exact number of bullet lists
-                that is required to appear in the response. If None, a random value
-                will be used.
+                that is required to appear in the response.
         """
         self._num_bullets = num_bullets
-        if self._num_bullets is None or self._num_bullets < 0:
-            self._num_bullets = random.randint(1, DEFAULT_NUM_BULLETS)
     
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -110,16 +104,14 @@ class HighlightSectionChecker(BaseInstruction):
     markdown, i.e. *highlighted section*."
     """
     
-    def __init__(self, num_highlights=None):
+    def __init__(self, num_highlights):
         """Initialize the highlighted section checker.
         
         Args:
             num_highlights: An integer specifying the minimum number of highlighted
-                sections. If None, a random value will be used.
+                sections.
         """
         self._num_highlights = num_highlights
-        if self._num_highlights is None or self._num_highlights < 0:
-            self._num_highlights = random.randint(1, DEFAULT_NUM_HIGHLIGHTS)
     
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -159,16 +151,13 @@ class ParagraphChecker(BaseInstruction):
     Paragraphs are separated with the markdown divider: ***"
     """
     
-    def __init__(self, num_paragraphs=None):
+    def __init__(self, num_paragraphs):
         """Initialize the paragraph checker.
         
         Args:
             num_paragraphs: An integer specifying the number of paragraphs.
-                If None, a random value will be used.
         """
         self._num_paragraphs = num_paragraphs
-        if self._num_paragraphs is None or self._num_paragraphs < 0:
-            self._num_paragraphs = random.randint(1, DEFAULT_NUM_PARAGRAPHS)
     
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""

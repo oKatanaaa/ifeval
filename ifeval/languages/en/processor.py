@@ -6,7 +6,7 @@ from typing import List
 
 import langdetect
 import nltk
-from nltk.tokenize import RegexpTokenizer
+from nltk.tokenize import RegexpTokenizer, word_tokenize
 
 from ifeval.languages.language_processor import BaseLanguageProcessor
 from ifeval.languages.language_registry import LanguageRegistry
@@ -134,6 +134,18 @@ class EnglishProcessor(BaseLanguageProcessor):
             Lemmatized text.
         """
         return text.lower()
+        
+    def word_tokenize(self, text: str) -> List[str]:
+        """Tokenize text into words using English-specific rules.
+        
+        Args:
+            text: Text to tokenize.
+            
+        Returns:
+            List of words.
+        """
+        # Use NLTK's English word tokenizer
+        return word_tokenize(text, language='english')
 
 
 # Register the processor

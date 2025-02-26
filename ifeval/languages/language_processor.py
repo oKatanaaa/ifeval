@@ -66,3 +66,15 @@ class BaseLanguageProcessor(ABC):
             The lemmatized text.
         """
         pass
+        
+    @abstractmethod
+    def word_tokenize(self, text: str) -> List[str]:
+        """Tokenize text into words using language-specific rules.
+        
+        Args:
+            text: The text to tokenize.
+            
+        Returns:
+            A list of words.
+        """
+        pass

@@ -6,6 +6,7 @@ from typing import List
 
 from ftlangdetect import detect
 import nltk
+from nltk.tokenize import RegexpTokenizer
 from pymorphy2 import MorphAnalyzer
 
 from ifeval.languages.language_processor import BaseLanguageProcessor
@@ -73,7 +74,7 @@ class RussianProcessor(BaseLanguageProcessor):
         Returns:
             Number of words.
         """
-        tokenizer = nltk.tokenize.RegexpTokenizer(r"\w+")
+        tokenizer = RegexpTokenizer(r"\w+")
         tokens = tokenizer.tokenize(text)
         return len(tokens)
     
@@ -144,6 +145,18 @@ class RussianProcessor(BaseLanguageProcessor):
             token = morph.normal_forms(token)[0]
             tokens.append(token)
         return ' '.join(tokens)
+        
+    def word_tokenize(self, text: str) -> List[str]:
+        """Tokenize text into words using Russian-specific rules.
+        
+        Args:
+            text: Text to tokenize.
+            
+        Returns:
+            List of words.
+        """
+        # Configure NLTK's word tokenizer for Russian
+        return nltk.word_tokenize(text, language='russian')
 
 
 # Register the processor

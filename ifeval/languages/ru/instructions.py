@@ -132,7 +132,7 @@ class NumberOfSentences(BaseInstruction):
     "Ваш ответ должен содержать {relation} {num_sentences} предложений."
     """
 
-    def __init__(self, num_sentences=None, relation=None):
+    def __init__(self, num_sentences, relation):
         """Initialize the sentence number checker.
         
         Args:
@@ -143,19 +143,14 @@ class NumberOfSentences(BaseInstruction):
         """
         # The number of sentences as a threshold for comparison.
         self._num_sentences_threshold = num_sentences
-        if self._num_sentences_threshold is None or self._num_sentences_threshold < 0:
-            from ifeval.languages.ru.constants import MAX_NUM_SENTENCES
-            self._num_sentences_threshold = random.randint(1, MAX_NUM_SENTENCES)
 
-        if relation is None:
-            self._comparison_relation = random.choice(COMPARISON_RELATION)
-        elif relation not in COMPARISON_RELATION:
+        if relation not in COMPARISON_RELATION:
             raise ValueError(
                 "The supported relation for comparison must be in "
                 f"{COMPARISON_RELATION}, but {relation} is given."
             )
-        else:
-            self._comparison_relation = relation
+        
+        self._comparison_relation = relation
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -234,7 +229,7 @@ class SectionChecker(BaseInstruction):
     [содержание раздела 2]"
     """
 
-    def __init__(self, section_spliter=None, num_sections=None):
+    def __init__(self, section_spliter, num_sections):
         """Initialize the section checker.
         
         Args:
@@ -242,17 +237,8 @@ class SectionChecker(BaseInstruction):
                 marks a new section, i.e., `Section` or `SECTION`.
             num_sections: An integer specifying the number of sections.
         """
-        self._section_spliter = (
-            section_spliter.strip()
-            if isinstance(section_spliter, str)
-            else section_spliter
-        )
-        if self._section_spliter is None:
-            self._section_spliter = random.choice(SECTION_SPLITER)
-
+        self._section_spliter = section_spliter.strip() if isinstance(section_spliter, str) else section_spliter
         self._num_sections = num_sections
-        if self._num_sections is None or self._num_sections < 0:
-            self._num_sections = random.randint(1, NUM_SECTIONS)
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -289,20 +275,14 @@ class PostscriptChecker(BaseInstruction):
     начинающийся с {postscript}"
     """
 
-    def __init__(self, postscript_marker=None):
+    def __init__(self, postscript_marker):
         """Initialize the postscript checker.
         
         Args:
             postscript_marker: A string containing the keyword that marks the start
                 of the postscript section.
         """
-        self._postscript_marker = (
-            postscript_marker.strip()
-            if isinstance(postscript_marker, str)
-            else postscript_marker
-        )
-        if self._postscript_marker is None:
-            self._postscript_marker = random.choice(POSTSCRIPT_MARKER)
+        self._postscript_marker = postscript_marker.strip() if isinstance(postscript_marker, str) else postscript_marker
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -340,18 +320,14 @@ class KeywordChecker(BaseInstruction):
     "Включите ключевые слова {keywords} в ответ."
     """
 
-    def __init__(self, keywords=None):
+    def __init__(self, keywords):
         """Initialize the keyword checker.
         
         Args:
             keywords: A sequence of strings representing the keywords that are
                 expected in the response.
         """
-        if not keywords:
-            self._keywords = generate_keywords(num_keywords=2)
-        else:
-            self._keywords = keywords
-        self._keywords = sorted(self._keywords)
+        self._keywords = sorted(keywords)
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -378,7 +354,7 @@ class KeywordFrequencyChecker(BaseInstruction):
     {frequency} раз."
     """
 
-    def __init__(self, keyword=None, frequency=None, relation=None):
+    def __init__(self, keyword, frequency, relation):
         """Initialize the keyword frequency checker.
         
         Args:
@@ -388,24 +364,16 @@ class KeywordFrequencyChecker(BaseInstruction):
             relation: A string in (`less than`, `at least`), defining the relational
                 operator for comparison.
         """
-        if not keyword:
-            self._keyword = generate_keywords(num_keywords=1)[0]
-        else:
-            self._keyword = keyword.strip()
-
+        self._keyword = keyword.strip()
         self._frequency = frequency
-        if self._frequency is None or self._frequency < 0:
-            self._frequency = random.randint(1, KEYWORD_FREQUENCY)
 
-        if relation is None:
-            self._comparison_relation = random.choice(COMPARISON_RELATION)
-        elif relation not in COMPARISON_RELATION:
+        if relation not in COMPARISON_RELATION:
             raise ValueError(
                 "The supported relation for comparison must be in "
                 f"{COMPARISON_RELATION}, but {relation} is given."
             )
-        else:
-            self._comparison_relation = relation
+        
+        self._comparison_relation = relation
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -439,7 +407,7 @@ class NumberOfWords(BaseInstruction):
     "Ответьте, используя {relation} {num_words} слов."
     """
 
-    def __init__(self, num_words=None, relation=None):
+    def __init__(self, num_words, relation):
         """Initialize the word count checker.
         
         Args:
@@ -449,20 +417,14 @@ class NumberOfWords(BaseInstruction):
                 operator for comparison.
         """
         self._num_words = num_words
-        if self._num_words is None or self._num_words < 0:
-            self._num_words = random.randint(
-                NUM_WORDS_LOWER_LIMIT, NUM_WORDS_UPPER_LIMIT
-            )
 
-        if relation is None:
-            self._comparison_relation = random.choice(COMPARISON_RELATION)
-        elif relation not in COMPARISON_RELATION:
+        if relation not in COMPARISON_RELATION:
             raise ValueError(
                 "The supported relation for comparison must be in "
                 f"{COMPARISON_RELATION}, but {relation} is given."
             )
-        else:
-            self._comparison_relation = relation
+        
+        self._comparison_relation = relation
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -493,7 +455,7 @@ class ParagraphFirstWordCheck(BaseInstruction):
     Абзац {nth_paragraph} должен начинаться со слова {first_word}."
     """
 
-    def __init__(self, num_paragraphs=None, nth_paragraph=None, first_word=None):
+    def __init__(self, num_paragraphs, nth_paragraph, first_word):
         """Initialize the paragraph first word checker.
         
         Args:
@@ -504,21 +466,12 @@ class ParagraphFirstWordCheck(BaseInstruction):
             first_word: A string that represent the first word of the paragraph.
         """
         self._num_paragraphs = num_paragraphs
-        if self._num_paragraphs is None or self._num_paragraphs < 0:
-            self._num_paragraphs = random.randint(1, NUM_PARAGRAPHS)
 
+        if nth_paragraph <= 0 or nth_paragraph > num_paragraphs:
+            raise ValueError(f"nth_paragraph must be between 1 and {num_paragraphs}")
+        
         self._nth_paragraph = nth_paragraph
-        if (
-            self._nth_paragraph is None
-            or self._nth_paragraph <= 0
-            or self._nth_paragraph > self._num_paragraphs
-        ):
-            self._nth_paragraph = random.randint(1, self._num_paragraphs + 1)
-
-        self._first_word = first_word
-        if self._first_word is None:
-            self._first_word = generate_keywords(num_keywords=1)[0]
-        self._first_word = self._first_word.lower()
+        self._first_word = first_word.lower()
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -584,18 +537,14 @@ class ForbiddenWords(BaseInstruction):
     "Не включайте ключевые слова {forbidden_words} в ответ."
     """
 
-    def __init__(self, forbidden_words=None):
+    def __init__(self, forbidden_words):
         """Initialize the forbidden words checker.
         
         Args:
             forbidden_words: A sequences of strings representing words that are not
                 allowed in the response.
         """
-        if not forbidden_words:
-            self._forbidden_words = generate_keywords(num_keywords=2)
-        else:
-            self._forbidden_words = list(set(forbidden_words))
-        self._forbidden_words = sorted(self._forbidden_words)
+        self._forbidden_words = sorted(list(set(forbidden_words)))
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -659,17 +608,13 @@ class EndChecker(BaseInstruction):
     Никаких других слов не должно следовать за этой фразой."
     """
 
-    def __init__(self, end_phrase=None):
+    def __init__(self, end_phrase):
         """Initialize the end phrase checker.
         
         Args:
             end_phrase: A string representing the phrase the response should end with.
         """
-        self._end_phrase = (
-            end_phrase.strip() if isinstance(end_phrase, str) else end_phrase
-        )
-        if self._end_phrase is None:
-            self._end_phrase = random.choice(ENDING_OPTIONS)
+        self._end_phrase = end_phrase.strip() if isinstance(end_phrase, str) else end_phrase
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -695,7 +640,7 @@ class LetterFrequencyChecker(BaseInstruction):
     {let_frequency} раз."
     """
 
-    def __init__(self, letter=None, let_frequency=None, let_relation=None):
+    def __init__(self, letter, let_frequency, let_relation):
         """Initialize the letter frequency checker.
         
         Args:
@@ -705,26 +650,19 @@ class LetterFrequencyChecker(BaseInstruction):
             let_relation: A string in (`less than`, `at least`), defining the
                 relational operator for comparison.
         """
-        if not letter or len(letter) > 1:
-            # For Russian, use the Cyrillic alphabet
-            self._letter = random.choice("абвгдеёжзийклмнопрстуфхцчшщъыьэюя")
-        else:
-            self._letter = letter.strip()
-        self._letter = self._letter.lower()
-
+        if len(letter) > 1:
+            raise ValueError(f"Letter must be a single character, got: {letter}")
+            
+        self._letter = letter.strip().lower()
         self._frequency = let_frequency
-        if self._frequency is None or self._frequency < 0:
-            self._frequency = random.randint(1, LETTER_FREQUENCY)
 
-        if let_relation is None:
-            self._comparison_relation = random.choice(COMPARISON_RELATION)
-        elif let_relation not in COMPARISON_RELATION:
+        if let_relation not in COMPARISON_RELATION:
             raise ValueError(
                 "The supported relation for comparison must be in "
                 f"{COMPARISON_RELATION}, but {let_relation} is given."
             )
-        else:
-            self._comparison_relation = let_relation
+        
+        self._comparison_relation = let_relation
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -827,7 +765,7 @@ class CapitalWordFrequencyChecker(BaseInstruction):
     встречаться {relation} {frequency} раз."
     """
 
-    def __init__(self, capital_frequency=None, capital_relation=None):
+    def __init__(self, capital_frequency, capital_relation):
         """Initialize the capital word frequency checker.
         
         Args:
@@ -837,17 +775,13 @@ class CapitalWordFrequencyChecker(BaseInstruction):
                 the frequency.
         """
         self._frequency = capital_frequency
-        if self._frequency is None:
-            self._frequency = random.randint(1, ALL_CAPITAL_WORD_FREQUENCY)
-
-        self._comparison_relation = capital_relation
-        if capital_relation is None:
-            self._comparison_relation = random.choice(COMPARISON_RELATION)
-        elif capital_relation not in COMPARISON_RELATION:
+        
+        if capital_relation not in COMPARISON_RELATION:
             raise ValueError(
                 "The supported relation for comparison must be in "
                 f"{COMPARISON_RELATION}, but {capital_relation} is given."
             )
+        self._comparison_relation = capital_relation
 
     def get_instruction_args(self):
         """Returns the keyword args of the instruction."""
@@ -862,8 +796,8 @@ class CapitalWordFrequencyChecker(BaseInstruction):
 
     def check_following(self, value):
         """Checks the frequency of words with all capital letters."""
-        # Hyphenated words will count as one word
-        words = nltk.word_tokenize(value)
+        # Use language-specific word tokenizer
+        words = processor.word_tokenize(value)
         capital_words = [word for word in words if word.isupper()]
 
         capital_words_count = len(capital_words)
