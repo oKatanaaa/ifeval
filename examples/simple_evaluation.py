@@ -75,6 +75,11 @@ def main():
     # Create example data
     prompts_file, responses_file = create_example_data()
     
+    # Load data from files
+    from ifeval.utils.io import read_input_examples, read_responses, write_outputs
+    input_examples = read_input_examples(prompts_file)
+    responses = read_responses(responses_file)
+    
     # Create output directory
     output_dir = "example_output"
     os.makedirs(output_dir, exist_ok=True)
@@ -83,17 +88,27 @@ def main():
     evaluator = Evaluator(instruction_registry)
     
     # Run evaluation
-    strict_accuracy, loose_accuracy = evaluator.evaluate_dataset(
-        prompts_file,
-        responses_file,
-        output_dir
-    )
+    report, all_outputs = evaluator.evaluate(input_examples, responses)
     
-    # Print results
+    # Print report
+    evaluator.print_report(report)
+    
+    # Write outputs to files
+    for output_key, outputs in all_outputs.items():
+        output_path = os.path.join(output_dir, f"{output_key}.jsonl")
+        write_outputs(output_path, outputs)
+        print(f"Wrote {len(outputs)} outputs to {output_path}")
+    
+    # Extract accuracies
+    strict_accuracy = report["eval_results_strict"]["prompt_accuracy"]
+    loose_accuracy = report["eval_results_loose"]["prompt_accuracy"]
+    
+    # Print summary
     print(f"\nEvaluation Results:")
     print(f"Strict accuracy: {strict_accuracy:.4f}")
     print(f"Loose accuracy: {loose_accuracy:.4f}")
     print(f"\nDetailed results saved to {output_dir}")
+
 
 
 if __name__ == "__main__":

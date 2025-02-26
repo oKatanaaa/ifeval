@@ -41,81 +41,18 @@ class Evaluator:
         """
         self.registry = registry
     
-    def read_prompt_list(self, input_jsonl_filename: str) -> List[InputExample]:
-        """Read prompts from a JSONL file.
-        
-        Args:
-            input_jsonl_filename: Path to the input JSONL file.
-            
-        Returns:
-            A list of InputExample objects.
-        """
-        inputs = []
-        with open(input_jsonl_filename, "r", encoding="utf-8") as f:
-            for line in f:
-                example = json.loads(line)
-                inputs.append(
-                    InputExample(
-                        key=example["key"],
-                        instruction_id_list=example["instruction_id_list"],
-                        prompt=example["prompt"],
-                        kwargs=example["kwargs"],
-                    )
-                )
-        return inputs
-    
-    def read_prompt_to_response_dict(self, input_jsonl_filename: str) -> Dict[str, str]:
-        """Create a dictionary mapping prompts to responses.
-        
-        Args:
-            input_jsonl_filename: Path to the input JSONL file.
-            
-        Returns:
-            A dictionary mapping prompts to responses.
-        """
-        return_dict = {}
-        with open(input_jsonl_filename, "r", encoding="utf-8") as f:
-            for line in f:
-                example = json.loads(line)
-                return_dict[example["prompt"]] = example["response"]
-        return return_dict
-    
-    def write_outputs(self, output_jsonl_filename: str, outputs: List[OutputExample]) -> None:
-        """Write outputs to a JSONL file.
-        
-        Args:
-            output_jsonl_filename: Path to the output JSONL file.
-            outputs: List of OutputExample objects to write.
-        """
-        assert outputs
-        with open(output_jsonl_filename, "w", encoding="utf-8") as f:
-            for output in outputs:
-                f.write(
-                    json.dumps(
-                        {
-                            attr_name: getattr(output, attr_name)
-                            for attr_name in [
-                                name for name in dir(output) if not name.startswith("_")
-                            ]
-                        },
-                        ensure_ascii=False,
-                    )
-                )
-                f.write("\n")
-    
     def test_instruction_following_strict(
-        self, inp: InputExample, prompt_to_response: Dict[str, str]
+        self, inp: InputExample, response: str
     ) -> OutputExample:
         """Test if a response strictly follows instructions.
         
         Args:
             inp: The input example.
-            prompt_to_response: Dictionary mapping prompts to responses.
+            response: The model's response to evaluate.
             
         Returns:
             An OutputExample with the evaluation results.
         """
-        response = prompt_to_response[inp.prompt]
         instruction_list = inp.instruction_id_list
         is_following_list = []
 
@@ -142,7 +79,7 @@ class Evaluator:
         )
     
     def test_instruction_following_loose(
-        self, inp: InputExample, prompt_to_response: Dict[str, str]
+        self, inp: InputExample, response: str
     ) -> OutputExample:
         """Test if a response loosely follows instructions.
         
@@ -151,12 +88,11 @@ class Evaluator:
         
         Args:
             inp: The input example.
-            prompt_to_response: Dictionary mapping prompts to responses.
+            response: The model's response to evaluate.
             
         Returns:
             An OutputExample with the evaluation results.
         """
-        response = prompt_to_response[inp.prompt]
         r = response.split("\n")
         response_remove_first = "\n".join(r[1:]).strip()
         response_remove_last = "\n".join(r[:-1]).strip()
@@ -203,58 +139,23 @@ class Evaluator:
             follow_instruction_list=is_following_list,
         )
     
-    def evaluate_dataset(
-        self, 
-        input_data_path: str, 
-        input_response_path: str, 
-        output_dir: str
-    ) -> Tuple[float, float]:
-        """Evaluate a dataset of prompts and responses.
+    def _calculate_metrics(self, outputs: List[OutputExample]) -> Dict[str, Any]:
+        """Calculate metrics from evaluation outputs.
         
         Args:
-            input_data_path: Path to the input data JSONL file.
-            input_response_path: Path to the input response JSONL file.
-            output_dir: Directory to write output files to.
+            outputs: List of OutputExample objects to calculate metrics for.
             
         Returns:
-            A tuple of (strict_accuracy, loose_accuracy)
+            Dictionary with calculated metrics.
         """
-        inputs = self.read_prompt_list(input_data_path)
-        prompt_to_response = self.read_prompt_to_response_dict(input_response_path)
-        
-        results = {}
-        
-        for func, output_file_name in [
-            (self.test_instruction_following_strict, "eval_results_strict"),
-            (self.test_instruction_following_loose, "eval_results_loose"),
-        ]:
-            logging.info("Generating %s...", output_file_name)
-            outputs = []
-            for inp in inputs:
-                outputs.append(func(inp, prompt_to_response))
-            follow_all_instructions = [o.follow_all_instructions for o in outputs]
-            accuracy = sum(follow_all_instructions) / len(outputs)
-            logging.info("Accuracy: %f", accuracy)
-            
-            results[output_file_name] = accuracy
+        if not outputs:
+            return {
+                "prompt_accuracy": 0.0,
+                "instruction_accuracy": 0.0,
+                "category_accuracy": {},
+                "instruction_accuracy_by_type": {}
+            }
 
-            output_file_name = os.path.join(output_dir, output_file_name + ".jsonl")
-            self.write_outputs(output_file_name, outputs)
-            logging.info("Generated: %s", output_file_name)
-
-            # Print instruction following accuracy report
-            print("=" * 64)
-            print(f"{output_file_name} Accuracy Scores:")
-            self.print_report(outputs)
-        
-        return results["eval_results_strict"], results["eval_results_loose"]
-    
-    def print_report(self, outputs: List[OutputExample]) -> None:
-        """Print a report on accuracy scores.
-        
-        Args:
-            outputs: List of OutputExample objects to report on.
-        """
         prompt_total = 0
         prompt_correct = 0
         instruction_total = 0
@@ -292,13 +193,104 @@ class Evaluator:
                 if followed_or_not:
                     tier1_correct[instruction_id] += 1
 
-        print(f"prompt-level: {prompt_correct / prompt_total}")
-        print(f"instruction-level: {instruction_correct / instruction_total}")
-        print()
+        # Calculate accuracies
+        prompt_accuracy = prompt_correct / prompt_total if prompt_total > 0 else 0
+        instruction_accuracy = instruction_correct / instruction_total if instruction_total > 0 else 0
+        
+        # Calculate category accuracies
+        category_accuracy = {}
         for instruction_id in sorted(tier0_total.keys()):
-            accuracy = tier0_correct[instruction_id] / tier0_total[instruction_id]
-            print(f"{instruction_id} {accuracy}")
-        print()
+            category_accuracy[instruction_id] = tier0_correct[instruction_id] / tier0_total[instruction_id]
+        
+        # Calculate instruction type accuracies
+        instruction_accuracy_by_type = {}
         for instruction_id in sorted(tier1_total.keys()):
-            accuracy = tier1_correct[instruction_id] / tier1_total[instruction_id]
-            print(f"{instruction_id} {accuracy}")
+            instruction_accuracy_by_type[instruction_id] = tier1_correct[instruction_id] / tier1_total[instruction_id]
+        
+        return {
+            "prompt_accuracy": prompt_accuracy,
+            "instruction_accuracy": instruction_accuracy,
+            "category_accuracy": category_accuracy,
+            "instruction_accuracy_by_type": instruction_accuracy_by_type,
+            "prompt_total": prompt_total,
+            "prompt_correct": prompt_correct,
+            "instruction_total": instruction_total,
+            "instruction_correct": instruction_correct
+        }
+    
+    def evaluate(
+        self, 
+        input_examples: List[InputExample], 
+        responses: Dict[str, str]
+    ) -> Tuple[Dict[str, Any], Dict[str, List[OutputExample]]]:
+        """Evaluate a set of inputs and responses.
+        
+        Args:
+            input_examples: List of input examples to evaluate.
+            responses: Dictionary mapping prompts to responses.
+            
+        Returns:
+            A tuple of (report_dict, output_examples_dict) where:
+            - report_dict: Dictionary with metrics for both strict and loose evaluation
+            - output_examples_dict: Dictionary with outputs for both evaluation modes
+        """
+        all_outputs = {}  # Dictionary to store both strict and loose outputs
+        report = {}
+        
+        for eval_function, result_key in [
+            (self.test_instruction_following_strict, "eval_results_strict"),
+            (self.test_instruction_following_loose, "eval_results_loose"),
+        ]:
+            logging.info(f"Generating {result_key}...")
+            outputs = []
+            for inp in input_examples:
+                response = responses.get(inp.prompt)
+                if response is None:
+                    logging.warning(f"No response found for prompt: {inp.prompt[:50]}...")
+                    continue
+                outputs.append(eval_function(inp, response))
+            
+            if not outputs:
+                logging.error("No outputs generated. Check if responses match prompts.")
+                return {
+                    "eval_results_strict": {}, 
+                    "eval_results_loose": {}
+                }, {
+                    "eval_results_strict": [], 
+                    "eval_results_loose": []
+                }
+                
+            # Calculate accuracy and save outputs
+            follow_all_instructions = [o.follow_all_instructions for o in outputs]
+            accuracy = sum(follow_all_instructions) / len(outputs)
+            logging.info(f"Accuracy: {accuracy:.4f}")
+            
+            # Store outputs in the dictionary
+            all_outputs[result_key] = outputs
+            
+            # Calculate detailed metrics and add to report
+            metrics = self._calculate_metrics(outputs)
+            report[result_key] = metrics
+        
+        return report, all_outputs
+    
+    def print_report(self, report: Dict[str, Any]) -> None:
+        """Print a report based on evaluation metrics.
+        
+        Args:
+            report: The report dictionary to print.
+        """
+        for result_key, metrics in report.items():
+            print("=" * 64)
+            print(f"{result_key} Accuracy Scores:")
+            print(f"Prompt-level accuracy: {metrics['prompt_accuracy']:.4f} ({metrics['prompt_correct']}/{metrics['prompt_total']})")
+            print(f"Instruction-level accuracy: {metrics['instruction_accuracy']:.4f} ({metrics['instruction_correct']}/{metrics['instruction_total']})")
+            
+            print("\nCategory-level accuracies:")
+            for category, accuracy in metrics['category_accuracy'].items():
+                print(f"  {category}: {accuracy:.4f}")
+            
+            print("\nInstruction-type accuracies:")
+            for instruction_type, accuracy in metrics['instruction_accuracy_by_type'].items():
+                print(f"  {instruction_type}: {accuracy:.4f}")
+            print()

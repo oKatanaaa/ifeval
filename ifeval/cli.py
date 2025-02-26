@@ -154,12 +154,38 @@ def run_evaluation(config: Config) -> Tuple[float, float]:
     # Create evaluator
     evaluator = Evaluator(registry)
     
+    # Load data from files
+    from ifeval.utils.io import read_input_examples, read_responses, write_outputs
+    input_examples = read_input_examples(config.input_data_path)
+    responses = read_responses(config.input_response_path)
+    
     # Run evaluation
-    return evaluator.evaluate_dataset(
-        config.input_data_path,
-        config.input_response_path,
-        config.output_dir
-    )
+    report, all_outputs = evaluator.evaluate(input_examples, responses)
+    
+    # Print report
+    evaluator.print_report(report)
+    
+    # Write report and outputs to files
+    if config.output_dir:
+        for output_key, outputs in all_outputs.items():
+            output_path = os.path.join(config.output_dir, f"{output_key}.jsonl")
+            write_outputs(output_path, outputs)
+            logging.info(f"Generated: {output_path}")
+        
+        with open(os.path.join(config.output_dir, f"metrics_report.json"), 'w') as f:
+            f.write(
+                json.dumps(
+                    report, indent=4
+                )
+            )
+    
+    # Return accuracies
+    strict_metrics = report.get("eval_results_strict", {})
+    loose_metrics = report.get("eval_results_loose", {})
+    return strict_metrics.get("prompt_accuracy", 0.0), loose_metrics.get("prompt_accuracy", 0.0)
+
+
+
 
 
 def main() -> None:
