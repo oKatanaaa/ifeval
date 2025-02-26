@@ -7,11 +7,13 @@ import os
 import sys
 from typing import List, Dict, Any, Optional, Tuple
 
-from ifeval.core.evaluation import Evaluator
+from ifeval.core.evaluation import Evaluator, InputExample
 from ifeval.core.registry import InstructionRegistry
 from ifeval.languages.en.instructions import instruction_registry as en_registry
 from ifeval.languages.ru.instructions import instruction_registry as ru_registry
 from ifeval.utils.config import Config
+from ifeval.utils.io import read_input_examples, read_responses, write_outputs
+from ifeval.utils.huggingface import get_default_dataset
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,8 +29,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input_data", 
         type=str, 
-        required=True,
-        help="Path to input data JSONL file containing prompts and instructions."
+        required=False,
+        help="Path to input data JSONL file containing prompts and instructions. If not provided, the default dataset for the specified language will be used."
     )
     
     parser.add_argument(
@@ -50,7 +52,7 @@ def parse_args() -> argparse.Namespace:
         type=str, 
         default="en",
         choices=["en", "ru"],  # Will add more languages in the future
-        help="Language to evaluate (currently only English is supported)."
+        help="Language to evaluate (defaults to English)."
     )
     
     parser.add_argument(
@@ -154,9 +156,17 @@ def run_evaluation(config: Config) -> Tuple[float, float]:
     # Create evaluator
     evaluator = Evaluator(registry)
     
-    # Load data from files
-    from ifeval.utils.io import read_input_examples, read_responses, write_outputs
-    input_examples = read_input_examples(config.input_data_path)
+    # Load input examples
+    if hasattr(config, "input_data_path") and config.input_data_path:
+        # Load data from specified file
+        input_examples = read_input_examples(config.input_data_path)
+        logging.info(f"Loaded input examples from {config.input_data_path}")
+    else:
+        # Use default dataset for the language
+        input_examples = get_default_dataset(config.language)
+        logging.info(f"Using default dataset for language: {config.language}")
+    
+    # Load responses
     responses = read_responses(config.input_response_path)
     
     # Run evaluation
@@ -183,9 +193,6 @@ def run_evaluation(config: Config) -> Tuple[float, float]:
     strict_metrics = report.get("eval_results_strict", {})
     loose_metrics = report.get("eval_results_loose", {})
     return strict_metrics.get("prompt_accuracy", 0.0), loose_metrics.get("prompt_accuracy", 0.0)
-
-
-
 
 
 def main() -> None:

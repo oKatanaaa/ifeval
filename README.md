@@ -217,6 +217,15 @@ The loose evaluation applies various transformations to the response to see if a
 - Replacing certain characters
 - Combinations of the above
 
-## License
+## Citation
 
-This project is licensed under the Apache 2.0 License.
+If you use this project, please cite:
+
+```bibtex
+@article{zhou2023instruction,
+  title={Instruction-Following Evaluation for Large Language Models},
+  author={Zhou, Jeffrey and Lu, Tianjian and Mishra, Swaroop and Brahma, Siddhartha and Basu, Sujoy and Luan, Yi and Zhou, Denny and Hou, Le},
+  journal={arXiv preprint arXiv:2311.07911},
+  year={2023}
+}
+```

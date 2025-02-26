@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ifeval"
+version = "0.1.0"
+description = "Instruction Following Evaluation Framework"
+authors = [
+    {name = "Kolibrify Team", email = "example@example.com"},
+]
+requires-python = ">=3.8"
+dependencies = [
+    "langdetect>=1.0.9",
+    "nltk>=3.6.0",
+    "immutabledict>=2.0.0",
+    "absl-py>=0.12.0",
+    "datasets>=2.0.0",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License", 
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
