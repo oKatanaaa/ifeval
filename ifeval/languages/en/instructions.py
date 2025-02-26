@@ -1,4 +1,12 @@
-"""English language instruction implementations."""
+"""English language instruction implementations.
+
+This module defines various instruction types for evaluating instruction following
+capabilities in language models. Each instruction class is responsible for:
+1. Building a human-readable description of the instruction
+2. Checking whether a given response follows the instruction
+
+Instructions are registered with the registry to allow for their identification.
+"""
 
 import collections
 import json
@@ -38,7 +46,20 @@ from ifeval.languages.en.processor import EnglishProcessor
 instruction_registry = InstructionRegistry()
 processor = EnglishProcessor()
 
+# Define instruction type prefixes for registry
+_KEYWORD = "keywords:"
+_LANGUAGE = "language:"
+_LENGTH = "length_constraints:"
+_CONTENT = "detectable_content:"
+_FORMAT = "detectable_format:"
+_MULTITURN = "multi-turn:"
+_COMBINATION = "combination:"
+_STARTEND = "startend:"
+_CHANGE_CASES = "change_case:"
+_PUNCTUATION = "punctuation:"
 
+
+@instruction_registry.register(_LANGUAGE + "response_language")
 class ResponseLanguageChecker(BaseInstruction):
     """Check the language of the entire response."""
 
@@ -92,6 +113,7 @@ class ResponseLanguageChecker(BaseInstruction):
             return True
 
 
+@instruction_registry.register(_LENGTH + "number_sentences")
 class NumberOfSentences(BaseInstruction):
     """Check the number of sentences."""
 
@@ -158,6 +180,7 @@ class NumberOfSentences(BaseInstruction):
             return num_sentences >= self._num_sentences_threshold
 
 
+@instruction_registry.register(_CONTENT + "number_placeholders")
 class PlaceholderChecker(BaseInstruction):
     """Check the placeholders in template writing."""
 
@@ -205,6 +228,7 @@ class PlaceholderChecker(BaseInstruction):
         return num_placeholders >= self._num_placeholders
 
 
+@instruction_registry.register(_FORMAT + "number_bullet_lists")
 class BulletListChecker(BaseInstruction):
     """Checks the bullet list in the prompt."""
 
@@ -255,6 +279,7 @@ class BulletListChecker(BaseInstruction):
         return num_bullet_lists == self._num_bullets
 
 
+@instruction_registry.register(_FORMAT + "constrained_response")
 class ConstrainedResponseChecker(BaseInstruction):
     """Checks the constrained response."""
 
@@ -294,6 +319,7 @@ class ConstrainedResponseChecker(BaseInstruction):
         return False
 
 
+@instruction_registry.register(_FORMAT + "number_highlighted_sections")
 class HighlightSectionChecker(BaseInstruction):
     """Checks the highlighted section."""
 
@@ -350,6 +376,7 @@ class HighlightSectionChecker(BaseInstruction):
         return num_highlights >= self._num_highlights
 
 
+@instruction_registry.register(_FORMAT + "multiple_sections")
 class SectionChecker(BaseInstruction):
     """Checks the sections."""
 
@@ -419,6 +446,7 @@ class SectionChecker(BaseInstruction):
         return num_sections >= self._num_sections
 
 
+@instruction_registry.register(_LENGTH + "number_paragraphs")
 class ParagraphChecker(BaseInstruction):
     """Checks the paragraphs."""
 
@@ -474,6 +502,7 @@ class ParagraphChecker(BaseInstruction):
         return num_paragraphs == self._num_paragraphs
 
 
+@instruction_registry.register(_CONTENT + "postscript")
 class PostscriptChecker(BaseInstruction):
     """Checks the postscript."""
 
@@ -532,6 +561,7 @@ class PostscriptChecker(BaseInstruction):
         return True if postscript else False
 
 
+@instruction_registry.register(_KEYWORD + "existence")
 class KeywordChecker(BaseInstruction):
     """Check the exisitence of certain keywords."""
 
@@ -572,6 +602,7 @@ class KeywordChecker(BaseInstruction):
         return True
 
 
+@instruction_registry.register(_KEYWORD + "frequency")
 class KeywordFrequencyChecker(BaseInstruction):
     """Check the keyword frequency."""
 
@@ -642,6 +673,7 @@ class KeywordFrequencyChecker(BaseInstruction):
             return actual_occurrences >= self._frequency
 
 
+@instruction_registry.register(_LENGTH + "number_words")
 class NumberOfWords(BaseInstruction):
     """Checks the number of words."""
 
@@ -698,6 +730,7 @@ class NumberOfWords(BaseInstruction):
             return num_words >= self._num_words
 
 
+@instruction_registry.register(_FORMAT + "json_format")
 class JsonFormat(BaseInstruction):
     """Check the Json format."""
 
@@ -733,6 +766,7 @@ class JsonFormat(BaseInstruction):
         return True
 
 
+@instruction_registry.register(_LENGTH + "nth_paragraph_first_word")
 class ParagraphFirstWordCheck(BaseInstruction):
     """Check the paragraph and the first word of the nth paragraph."""
 
@@ -841,6 +875,7 @@ class ParagraphFirstWordCheck(BaseInstruction):
         )
 
 
+@instruction_registry.register(_KEYWORD + "forbidden_words")
 class ForbiddenWords(BaseInstruction):
     """Checks that specified words are not used in response."""
 
@@ -881,6 +916,7 @@ class ForbiddenWords(BaseInstruction):
         return True
 
 
+@instruction_registry.register(_COMBINATION + "two_responses")
 class TwoResponsesChecker(BaseInstruction):
     """Check that two responses were given."""
 
@@ -923,6 +959,7 @@ class TwoResponsesChecker(BaseInstruction):
         )
 
 
+@instruction_registry.register(_COMBINATION + "repeat_prompt")
 class RepeatPromptThenAnswer(BaseInstruction):
     """Checks that Prompt is first repeated then answered."""
 
@@ -960,6 +997,7 @@ class RepeatPromptThenAnswer(BaseInstruction):
         return False
 
 
+@instruction_registry.register(_STARTEND + "end_checker")
 class EndChecker(BaseInstruction):
     """Checks that the prompt ends with a given phrase."""
 
@@ -997,6 +1035,7 @@ class EndChecker(BaseInstruction):
         return value.endswith(self._end_phrase)
 
 
+@instruction_registry.register(_FORMAT + "title")
 class TitleChecker(BaseInstruction):
     """Checks the response for a title."""
 
@@ -1027,6 +1066,7 @@ class TitleChecker(BaseInstruction):
         return False
 
 
+@instruction_registry.register(_KEYWORD + "letter_frequency")
 class LetterFrequencyChecker(BaseInstruction):
     """Checks letter frequency."""
 
@@ -1102,6 +1142,7 @@ class LetterFrequencyChecker(BaseInstruction):
             return letters[self._letter] >= self._frequency
 
 
+@instruction_registry.register(_CHANGE_CASES + "english_capital")
 class CapitalLettersEnglishChecker(BaseInstruction):
     """Checks that the response is in english and is in all capital letters."""
 
@@ -1133,6 +1174,7 @@ class CapitalLettersEnglishChecker(BaseInstruction):
             return True
 
 
+@instruction_registry.register(_CHANGE_CASES + "english_lowercase")
 class LowercaseLettersEnglishChecker(BaseInstruction):
     """Checks that the response is in english and is in all lowercase letters."""
 
@@ -1165,6 +1207,7 @@ class LowercaseLettersEnglishChecker(BaseInstruction):
             return True
 
 
+@instruction_registry.register(_PUNCTUATION + "no_comma")
 class CommaChecker(BaseInstruction):
     """Checks the response for no commas."""
 
@@ -1187,6 +1230,7 @@ class CommaChecker(BaseInstruction):
         return not re.search(r",", value)
 
 
+@instruction_registry.register(_CHANGE_CASES + "capital_word_frequency")
 class CapitalWordFrequencyChecker(BaseInstruction):
     """Checks frequency of words with all capital letters."""
 
@@ -1253,6 +1297,7 @@ class CapitalWordFrequencyChecker(BaseInstruction):
             return capital_words_count >= self._frequency
 
 
+@instruction_registry.register(_STARTEND + "quotation")
 class QuotationChecker(BaseInstruction):
     """Checks response is wrapped with double quotation marks."""
 
@@ -1275,124 +1320,3 @@ class QuotationChecker(BaseInstruction):
         """Checks if the response is wrapped with double quotation marks."""
         value = value.strip()
         return len(value) > 1 and value[0] == '"' and value[-1] == '"'
-
-
-# Register all instruction classes
-_KEYWORD = "keywords:"
-_LANGUAGE = "language:"
-_LENGTH = "length_constraints:"
-_CONTENT = "detectable_content:"
-_FORMAT = "detectable_format:"
-_MULTITURN = "multi-turn:"
-_COMBINATION = "combination:"
-_STARTEND = "startend:"
-_CHANGE_CASES = "change_case:"
-_PUNCTUATION = "punctuation:"
-
-instruction_registry.register(_KEYWORD + "existence")(KeywordChecker)
-instruction_registry.register(_KEYWORD + "frequency")(KeywordFrequencyChecker)
-instruction_registry.register(_KEYWORD + "forbidden_words")(ForbiddenWords)
-instruction_registry.register(_KEYWORD + "letter_frequency")(LetterFrequencyChecker)
-instruction_registry.register(_LANGUAGE + "response_language")(ResponseLanguageChecker)
-instruction_registry.register(_LENGTH + "number_sentences")(NumberOfSentences)
-instruction_registry.register(_LENGTH + "number_paragraphs")(ParagraphChecker)
-instruction_registry.register(_LENGTH + "number_words")(NumberOfWords)
-instruction_registry.register(_LENGTH + "nth_paragraph_first_word")(ParagraphFirstWordCheck)
-instruction_registry.register(_CONTENT + "number_placeholders")(PlaceholderChecker)
-instruction_registry.register(_CONTENT + "postscript")(PostscriptChecker)
-instruction_registry.register(_FORMAT + "number_bullet_lists")(BulletListChecker)
-instruction_registry.register(_FORMAT + "constrained_response")(ConstrainedResponseChecker)
-instruction_registry.register(_FORMAT + "number_highlighted_sections")(HighlightSectionChecker)
-instruction_registry.register(_FORMAT + "multiple_sections")(SectionChecker)
-instruction_registry.register(_FORMAT + "json_format")(JsonFormat)
-instruction_registry.register(_FORMAT + "title")(TitleChecker)
-instruction_registry.register(_COMBINATION + "two_responses")(TwoResponsesChecker)
-instruction_registry.register(_COMBINATION + "repeat_prompt")(RepeatPromptThenAnswer)
-instruction_registry.register(_STARTEND + "end_checker")(EndChecker)
-instruction_registry.register(_CHANGE_CASES + "capital_word_frequency")(CapitalWordFrequencyChecker)
-instruction_registry.register(_CHANGE_CASES + "english_capital")(CapitalLettersEnglishChecker)
-instruction_registry.register(_CHANGE_CASES + "english_lowercase")(LowercaseLettersEnglishChecker)
-instruction_registry.register(_PUNCTUATION + "no_comma")(CommaChecker)
-instruction_registry.register(_STARTEND + "quotation")(QuotationChecker)
-
-# Define instruction conflicts
-INSTRUCTION_CONFLICTS = {
-    _KEYWORD + "existence": {_KEYWORD + "existence"},
-    _KEYWORD + "frequency": {_KEYWORD + "frequency"},
-    _KEYWORD + "forbidden_words": {_KEYWORD + "forbidden_words"},
-    _KEYWORD + "letter_frequency": {_KEYWORD + "letter_frequency"},
-    _LANGUAGE
-    + "response_language": {
-        _LANGUAGE + "response_language",
-        _FORMAT + "multiple_sections",
-        _KEYWORD + "existence",
-        _KEYWORD + "frequency",
-        _KEYWORD + "forbidden_words",
-        _STARTEND + "end_checker",
-        _CHANGE_CASES + "english_capital",
-        _CHANGE_CASES + "english_lowercase",
-    },
-    _LENGTH + "number_sentences": {_LENGTH + "number_sentences"},
-    _LENGTH
-    + "number_paragraphs": {
-        _LENGTH + "number_paragraphs",
-        _LENGTH + "nth_paragraph_first_word",
-        _LENGTH + "number_sentences",
-        _LENGTH + "nth_paragraph_first_word",
-    },
-    _LENGTH + "number_words": {_LENGTH + "number_words"},
-    _LENGTH
-    + "nth_paragraph_first_word": {
-        _LENGTH + "nth_paragraph_first_word",
-        _LENGTH + "number_paragraphs",
-    },
-    _CONTENT + "number_placeholders": {_CONTENT + "number_placeholders"},
-    _CONTENT + "postscript": {_CONTENT + "postscript"},
-    _FORMAT + "number_bullet_lists": {_FORMAT + "number_bullet_lists"},
-    _FORMAT + "constrained_response": set(instruction_registry._instructions.keys()),
-    _FORMAT
-    + "number_highlighted_sections": {_FORMAT + "number_highlighted_sections"},
-    _FORMAT
-    + "multiple_sections": {
-        _FORMAT + "multiple_sections",
-        _LANGUAGE + "response_language",
-        _FORMAT + "number_highlighted_sections",
-    },
-    _FORMAT
-    + "json_format": set(instruction_registry._instructions.keys()).difference(
-        {_KEYWORD + "forbidden_words", _KEYWORD + "existence"}
-    ),
-    _FORMAT + "title": {_FORMAT + "title"},
-    _COMBINATION
-    + "two_responses": set(instruction_registry._instructions.keys()).difference({
-        _KEYWORD + "forbidden_words",
-        _KEYWORD + "existence",
-        _LANGUAGE + "response_language",
-        _FORMAT + "title",
-        _PUNCTUATION + "no_comma"
-    }),
-    _COMBINATION 
-    + "repeat_prompt": set(instruction_registry._instructions.keys()).difference({
-        _KEYWORD + "existence",
-        _FORMAT + "title",
-        _PUNCTUATION + "no_comma"
-    }),
-    _STARTEND + "end_checker": {_STARTEND + "end_checker"},
-    _CHANGE_CASES 
-    + "capital_word_frequency": {
-        _CHANGE_CASES + "capital_word_frequency",
-        _CHANGE_CASES + "english_lowercase",
-        _CHANGE_CASES + "english_capital",
-    },
-    _CHANGE_CASES + "english_capital": {_CHANGE_CASES + "english_capital"},
-    _CHANGE_CASES 
-    + "english_lowercase": {
-        _CHANGE_CASES + "english_lowercase",
-        _CHANGE_CASES + "english_capital",
-    },
-    _PUNCTUATION + "no_comma": {_PUNCTUATION + "no_comma"},
-    _STARTEND + "quotation": {_STARTEND + "quotation", _FORMAT + "title"},
-}
-
-# Make conflicts bidirectional
-instruction_registry.conflict_make()
