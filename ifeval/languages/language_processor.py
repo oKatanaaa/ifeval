@@ -8,18 +8,6 @@ class BaseLanguageProcessor(ABC):
     """Base class for language-specific processors."""
     
     @abstractmethod
-    def detect_language(self, text: str) -> str:
-        """Detect the language of a text.
-        
-        Args:
-            text: The text to detect the language of.
-            
-        Returns:
-            A language code.
-        """
-        pass
-    
-    @abstractmethod
     def count_sentences(self, text: str) -> int:
         """Count the number of sentences in a text.
         

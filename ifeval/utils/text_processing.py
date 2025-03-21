@@ -2,6 +2,12 @@
 
 import re
 from typing import List
+from langdetect import detector_factory
+from langdetect import detect
+
+detector_factory.init_factory()
+SUPPORTED_LANGUAGES = detector_factory._factory.langlist
+
 
 
 def split_paragraphs(text: str) -> List[str]:
@@ -93,3 +99,15 @@ def is_json(text: str) -> bool:
         return True
     except:
         return False
+    
+
+def language_is_supported(lang: str):
+    return lang in SUPPORTED_LANGUAGES
+
+
+# There are problems with ftlangdetect due to numpy 2.0 incompatibilities.
+# To avoid further refactoring in the future, I decided to make
+# a dedicated function for language detection.
+# It will allow to seamlessly change backends if needed.
+def detect_language(text):
+    return detect(text)

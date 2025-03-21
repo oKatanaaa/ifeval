@@ -32,21 +32,6 @@ _LATIN_SYMBOLS_PATTERN = "[A-Za-z0-9!#$%&'()*+,./:;<=>?@[\]^_`{|}~—\"\-]+"
 class RussianProcessor(BaseLanguageProcessor):
     """Russian language processor implementation."""
     
-    def detect_language(self, text: str) -> str:
-        """Detect if text is in Russian.
-        
-        Args:
-            text: Text to check.
-            
-        Returns:
-            Language code ('ru' for Russian).
-        """
-        try:
-            return detect(text=text.replace("\n", " "), low_memory=False)["lang"]
-        except Exception:
-            # Default to Russian if detection fails
-            return "ru"
-    
     @functools.lru_cache(maxsize=None)
     def _get_sentence_tokenizer(self):
         """Get NLTK sentence tokenizer, with caching."""

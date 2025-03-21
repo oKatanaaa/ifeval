@@ -6,10 +6,11 @@ import re
 
 from absl import logging
 
-from ftlangdetect import detect
 
+from ifeval.utils.text_processing import detect_language
 from ifeval.core.instructions import BaseInstruction
 from ifeval.core.registry import InstructionRegistry
+from ifeval.core import legacy_behavior
 from ifeval.languages.ru.constants import (
     COMPARISON_RELATION,
     CONSTRAINED_RESPONSE_OPTIONS
@@ -30,7 +31,8 @@ from ifeval.languages.generic import (
     PostscriptChecker,
     RepeatPromptThenAnswer,
     EndChecker,
-    LetterFrequencyChecker
+    LetterFrequencyChecker,
+    ResponseLanguageChecker
 )
 
 # Create registry and processor instances
@@ -64,59 +66,10 @@ instruction_registry.register(_CONTENT + "postscript")(PostscriptChecker)
 instruction_registry.register(_COMBINATION + "repeat_prompt")(RepeatPromptThenAnswer)
 instruction_registry.register(_STARTEND + "end_checker")(EndChecker)
 instruction_registry.register(_KEYWORD + "letter_frequency")(LetterFrequencyChecker)
+instruction_registry.register(_LANGUAGE + "response_language")(ResponseLanguageChecker)
+
 
 # Language-specific instructions
-
-@instruction_registry.register(_LANGUAGE + "response_language")
-class ResponseLanguageChecker(BaseInstruction):
-    """Check if response is in a specific language.
-    
-    Example description:
-    "Весь ваш ответ должен быть на {language} языке, никакой другой 
-    язык не допускается."
-    """
-
-    def __init__(self, language=None):
-        """Initialize the language checker.
-        
-        Args:
-            language: A string representing the expected language of the response.
-        """
-        from ifeval.languages.language_registry import LANGUAGE_CODES
-        
-        self._language = language
-        if self._language is None:
-            self._language = random.choice(list(LANGUAGE_CODES.keys()))
-
-    def get_instruction_args(self):
-        """Returns the keyword args of the instruction."""
-        return {"language": self._language}
-
-    def get_instruction_args_keys(self):
-        """Returns the args keys of the instruction."""
-        return ["language"]
-
-    def check_following(self, value):
-        """Check if the language of the entire response follows the instruction.
-        
-        Args:
-            value: A string representing the response.
-            
-        Returns:
-            True if the language of `value` follows instruction; otherwise False.
-        """
-        assert isinstance(value, str)
-
-        try:
-            return detect(text=value.replace("\n", " "), low_memory=False)["lang"] == self._language
-        except Exception as e:
-            # Count as instruction is followed.
-            logging.error(
-                "Unable to detect language for text %s due to %s", value, e
-            )
-            return True
-
-
 @instruction_registry.register(_LENGTH + "number_sentences")
 class NumberOfSentences(BaseInstruction):
     """Check if response contains specific number of sentences.
@@ -484,13 +437,14 @@ class CapitalLettersRussianChecker(BaseInstruction):
         assert isinstance(value, str)
 
         try:
-            return value.isupper() and detect(text=value.replace("\n", " "), low_memory=False)["lang"] == "ru"
+            return value.isupper() and detect_language(text=value.replace("\n", " ")) == "ru"
         except Exception as e:
-            # Count as instruction is followed.
             logging.error(
                 "Unable to detect language for text %s due to %s", value, e
             )
-            return True
+            if legacy_behavior():
+                return True
+            return False
 
 
 @instruction_registry.register(_CHANGE_CASES + "english_lowercase")
@@ -519,13 +473,14 @@ class LowercaseLettersRussianChecker(BaseInstruction):
         assert isinstance(value, str)
 
         try:
-            return value.islower() and detect(text=value.replace("\n", " "), low_memory=False)["lang"] == "ru"
+            return value.islower() and detect_language(text=value.replace("\n", " ")) == "ru"
         except Exception as e:
-            # Count as instruction is followed.
             logging.error(
                 "Unable to detect language for text %s due to %s", value, e
             )
-            return True
+            if legacy_behavior():
+                return True
+            return False
 
 
 @instruction_registry.register(_CHANGE_CASES + "capital_word_frequency")

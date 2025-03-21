@@ -4,7 +4,6 @@ import functools
 import re
 from typing import List
 
-import langdetect
 import nltk
 from nltk.tokenize import RegexpTokenizer, word_tokenize
 
@@ -24,21 +23,6 @@ _MULTIPLE_DOTS = r"\.{2,}"
 
 class EnglishProcessor(BaseLanguageProcessor):
     """English language processor implementation."""
-    
-    def detect_language(self, text: str) -> str:
-        """Detect if text is in English.
-        
-        Args:
-            text: Text to check.
-            
-        Returns:
-            Language code ('en' for English).
-        """
-        try:
-            return langdetect.detect(text)
-        except langdetect.LangDetectException:
-            # Default to English if detection fails
-            return "en"
     
     @functools.lru_cache(maxsize=None)
     def _get_sentence_tokenizer(self):

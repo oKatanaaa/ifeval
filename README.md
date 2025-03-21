@@ -258,8 +258,6 @@ instruction_registry.register("my_category:my_instruction")(MyLanguageSpecificIn
 from ifeval.languages.language_processor import BaseLanguageProcessor
 
 class MyLanguageProcessor(BaseLanguageProcessor):
-    def detect_language(self, text):
-        # Implement language detection
         
     def count_sentences(self, text):
         # Count sentences using language-specific rules

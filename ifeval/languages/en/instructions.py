@@ -34,7 +34,8 @@ from ifeval.languages.generic import (
     PostscriptChecker,
     RepeatPromptThenAnswer,
     EndChecker,
-    LetterFrequencyChecker
+    LetterFrequencyChecker,
+    ResponseLanguageChecker
 )
 
 # Create registry and processor instances
@@ -68,59 +69,10 @@ instruction_registry.register(_CONTENT + "postscript")(PostscriptChecker)
 instruction_registry.register(_COMBINATION + "repeat_prompt")(RepeatPromptThenAnswer)
 instruction_registry.register(_STARTEND + "end_checker")(EndChecker)
 instruction_registry.register(_KEYWORD + "letter_frequency")(LetterFrequencyChecker)
+instruction_registry.register(_LANGUAGE + "response_language")(ResponseLanguageChecker)
+
 
 # Language-specific instructions
-
-@instruction_registry.register(_LANGUAGE + "response_language")
-class ResponseLanguageChecker(BaseInstruction):
-    """Check if response is in a specific language.
-    
-    Example description:
-    "Your ENTIRE response should be in {language} language, no other 
-    language is allowed."
-    """
-
-    def __init__(self, language=None):
-        """Initialize the language checker.
-        
-        Args:
-            language: A string representing the expected language of the response.
-        """
-        from ifeval.languages.language_registry import LANGUAGE_CODES
-        
-        self._language = language
-        if self._language is None:
-            self._language = random.choice(list(LANGUAGE_CODES.keys()))
-
-    def get_instruction_args(self):
-        """Returns the keyword args of the instruction."""
-        return {"language": self._language}
-
-    def get_instruction_args_keys(self):
-        """Returns the args keys of the instruction."""
-        return ["language"]
-
-    def check_following(self, value):
-        """Check if the language of the entire response follows the instruction.
-        
-        Args:
-            value: A string representing the response.
-            
-        Returns:
-            True if the language of `value` follows instruction; otherwise False.
-        """
-        assert isinstance(value, str)
-
-        try:
-            return langdetect.detect(value) == self._language
-        except langdetect.LangDetectException as e:
-            # Count as instruction is followed.
-            logging.error(
-                "Unable to detect language for text %s due to %s", value, e
-            )
-            return True
-
-
 @instruction_registry.register(_LENGTH + "number_sentences")
 class NumberOfSentences(BaseInstruction):
     """Check if response contains specific number of sentences.

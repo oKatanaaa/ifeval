@@ -1,12 +1,13 @@
 """Generic language-agnostic instruction implementations."""
 
 import json
-import random
+from absl import logging
 import re
 import collections
-from typing import Dict, List, Optional, Union, Any
 
+from ifeval.core import legacy_behavior
 from ifeval.core.instructions import BaseInstruction
+from ifeval.utils.text_processing import language_is_supported, detect_language
 
 # Default values for instruction parameters
 DEFAULT_NUM_PLACEHOLDERS = 4
@@ -599,3 +600,51 @@ class LetterFrequencyChecker(BaseInstruction):
             return letters[self._letter] < self._frequency
         else:  # at least
             return letters[self._letter] >= self._frequency
+        
+
+class ResponseLanguageChecker(BaseInstruction):
+    """Check if response is in a specific language.
+    
+    Example description:
+    "Your ENTIRE response should be in {language} language, no other 
+    language is allowed."
+    """
+
+    def __init__(self, language=None):
+        """Initialize the language checker.
+        
+        Args:
+            language: A string representing the expected language of the response.
+        """
+        assert language_is_supported(language), f'Language {language} is not supported.'
+        self._language = language
+
+    def get_instruction_args(self):
+        """Returns the keyword args of the instruction."""
+        return {"language": self._language}
+
+    def get_instruction_args_keys(self):
+        """Returns the args keys of the instruction."""
+        return ["language"]
+
+    def check_following(self, value):
+        """Check if the language of the entire response follows the instruction.
+        
+        Args:
+            value: A string representing the response.
+            
+        Returns:
+            True if the language of `value` follows instruction; otherwise False.
+        """
+        assert isinstance(value, str)
+        try:
+            return detect_language(text=value.replace("\n", " ")) == self._language
+        except Exception as e:
+            logging.error(
+                "Unable to detect language for text %s due to %s", value, e
+            )
+            if legacy_behavior():
+                # Count as instruction is followed.
+                return True
+            else:
+                False

@@ -14,7 +14,6 @@ from ifeval.core.registry import InstructionRegistry
 @dataclasses.dataclass
 class InputExample:
     """Input example for evaluation."""
-    key: int
     instruction_id_list: List[str]
     prompt: str
     kwargs: List[Dict[str, Optional[Union[str, int]]]]

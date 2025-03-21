@@ -11,3 +11,13 @@ __all__ = [
     'InputExample',
     'OutputExample'
 ]
+
+_LEGACY = False
+
+def legacy_behavior():
+    return _LEGACY
+
+def use_legacy_behavior(use: bool):
+    global _LEGACY
+    assert isinstance(use, bool)
+    _LEGACY = use
