@@ -13,11 +13,6 @@ With IFEval, you can:
 - Easily extend to new instruction types
 - Use default benchmark datasets or your own custom data
 
-## News
-
-- [03/2025] The Russian subset has been updated with o3-mini translations of higher quality. To use the old subset, enable legacy behavior using `--legacy` key or by `use_legacy_behavior(True)` in code
-(import it as `from ifeval.core import use_legacy_behavior`).
-
 ## Installation
 
 ```bash

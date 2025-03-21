@@ -22,8 +22,8 @@ def get_default_dataset(language: str = "en") -> List[InputExample]:
     Raises:
         ValueError: If the dataset for the specified language cannot be loaded.
     """
-    if language == 'ru':
-        language = 'ru' if use_legacy_behavior() else "ru_v2"
+    # if language == 'ru':
+    #     language = 'ru' if use_legacy_behavior() else "ru_v2"
     try:
         # Load the dataset from HuggingFace
         data_files = {"test": f"{language}.jsonl"}
