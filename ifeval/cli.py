@@ -66,7 +66,13 @@ def parse_args() -> argparse.Namespace:
         type=str,
         help="Path to JSON config file."
     )
-    
+
+    parser.add_argument(
+        "--legacy",
+        action="store_true",
+        help="Use legacy evaluation mode."
+    )
+
     return parser.parse_args()
 
 

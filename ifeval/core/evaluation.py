@@ -59,11 +59,6 @@ class Evaluator:
             kwargs = inp.kwargs[index] or {}
             instruction = self.registry.create_instruction(instruction_id, **kwargs)
 
-            # Handle prompt-dependent instructions if needed
-            args = instruction.get_instruction_args()
-            if args and "prompt" in args and hasattr(instruction, "_prompt"):
-                setattr(instruction, "_prompt", inp.prompt)
-
             if response.strip() and instruction.check_following(response):
                 is_following_list.append(True)
             else:
@@ -116,11 +111,6 @@ class Evaluator:
         for index, instruction_id in enumerate(instruction_list):
             kwargs = inp.kwargs[index] or {}
             instruction = self.registry.create_instruction(instruction_id, **kwargs)
-
-            # Handle prompt-dependent instructions if needed
-            args = instruction.get_instruction_args()
-            if args and "prompt" in args and hasattr(instruction, "_prompt"):
-                setattr(instruction, "_prompt", inp.prompt)
 
             is_following = False
             for r in all_responses:

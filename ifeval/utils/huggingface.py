@@ -6,6 +6,7 @@ from typing import List
 from datasets import load_dataset
 
 from ifeval.core.evaluation import InputExample
+from ifeval.core import use_legacy_behavior
 
 
 def get_default_dataset(language: str = "en") -> List[InputExample]:
@@ -21,6 +22,8 @@ def get_default_dataset(language: str = "en") -> List[InputExample]:
     Raises:
         ValueError: If the dataset for the specified language cannot be loaded.
     """
+    if language == 'ru':
+        language = 'ru' if use_legacy_behavior() else "ru_v2"
     try:
         # Load the dataset from HuggingFace
         data_files = {"test": f"{language}.jsonl"}
@@ -37,7 +40,6 @@ def get_default_dataset(language: str = "en") -> List[InputExample]:
             
             examples.append(
                 InputExample(
-                    key=content["key"],
                     instruction_id_list=content["instruction_id_list"],
                     prompt=content["prompt"],
                     kwargs=content["kwargs"],

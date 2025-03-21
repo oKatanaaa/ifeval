@@ -13,6 +13,11 @@ With IFEval, you can:
 - Easily extend to new instruction types
 - Use default benchmark datasets or your own custom data
 
+## News
+
+- [03/2025] The Russian subset has been updated with o3-mini translations of higher quality. To use the old subset, enable legacy behavior using `--legacy` key or by `use_legacy_behavior(True)` in code
+(import it as `from ifeval.core import use_legacy_behavior`).
+
 ## Installation
 
 ```bash
@@ -183,17 +188,6 @@ class MyGenericInstruction(BaseInstruction):
         self._parameter1 = parameter1
         self._parameter2 = parameter2
         
-    def get_instruction_args(self):
-        # Return stored parameters
-        return {
-            "parameter1": self._parameter1,
-            "parameter2": self._parameter2
-        }
-        
-    def get_instruction_args_keys(self):
-        # Return list of parameter keys
-        return ["parameter1", "parameter2"]
-        
     def check_following(self, value):
         # Check if response follows instruction
         # Use language-agnostic logic (e.g., regex patterns)
@@ -210,6 +204,9 @@ from ifeval.languages.generic import MyGenericInstruction
 instruction_registry.register("my_category:my_instruction")(MyGenericInstruction)
 ```
 
+> P.S. You'll see  `get_instruction_args` and `get_instruction_args_keys` methods in existing implementations.
+This is legacy API, don't bother to implement it.
+
 #### Language-Specific Instructions
 
 For instructions that need language-specific processing:
@@ -223,19 +220,8 @@ class MyLanguageSpecificInstruction(BaseInstruction):
         self._parameter1 = parameter1
         self._parameter2 = parameter2
         
-    def get_instruction_args(self):
-        # Return stored parameters
-        return {
-            "parameter1": self._parameter1,
-            "parameter2": self._parameter2
-        }
-        
-    def get_instruction_args_keys(self):
-        # Return list of parameter keys
-        return ["parameter1", "parameter2"]
-        
     def check_following(self, value):
-        # Use language processor to analyze the text
+        # Use language processor to analyze the text if needed
         # processor.count_words(value), processor.lemmatize(text), etc.
         # ...
         return True/False
@@ -290,8 +276,7 @@ language_registry.register("my_lang")(MyLanguageProcessor)
 # ifeval/languages/my_lang/constants.py
 
 # Define language-specific constants
-COMPARISON_RELATION = ("less than", "at least")  # Translated to your language
-CONSTRAINED_RESPONSE_OPTIONS = ("My answer is yes.", "My answer is no.")  # Translated
+CONSTRAINED_RESPONSE_OPTIONS = ("My answer is yes.", "My answer is no.")# Translated to your language
 ```
 
 4. Create a language-specific instructions module:
