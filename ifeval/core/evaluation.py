@@ -356,3 +356,54 @@ def pass_at_k(n: int, c: int, k: int) -> float:
     for i in range(n - c + 1, n + 1):
         prod *= 1.0 - k / i
     return 1.0 - prod
+
+def evaluate_pass_at_k_metrics(
+    registry: InstructionRegistry,
+    input_examples: List[InputExample],
+    responses: Dict[str, List[str]],
+    k: int,
+    smooth: bool = False,
+) -> Dict[str, float]:
+    """
+    Compute prompt and instruction accuracy under a pass@k scheme.
+
+    Args:
+        registry: Instruction registry for creating instruction checkers.
+        input_examples: List of InputExample objects.
+        responses: Mapping from prompt to list of responses.
+        k: Number of samples to consider in pass@k.
+        smooth: If True, use smooth (probabilistic) estimator; else hard.
+
+    Returns:
+        Dict with 'prompt_accuracy' and 'instruction_accuracy'.
+    """
+    prompt_total = 0
+    prompt_correct = 0
+    inst_total = 0
+    inst_correct = 0.0
+
+    for inp in input_examples:
+        resp_list = responses.get(inp.prompt)
+        if resp_list is None:
+            continue
+        n = len(resp_list)
+        passed_prompt = False
+        for idx, instruction_id in enumerate(inp.instruction_id_list):
+            instr = registry.create_instruction(instruction_id, **(inp.kwargs[idx] or {}))
+            c = sum(1 for r in resp_list if instr.check_following(r))
+            if smooth:
+                score = pass_at_k(n, c, k)
+            else:
+                score = 1.0 if c > 0 else 0.0
+            inst_correct += score
+            inst_total += 1
+            if c > 0:
+                passed_prompt = True
+        prompt_total += 1
+        if passed_prompt:
+            prompt_correct += 1
+
+    return {
+        "prompt_accuracy": prompt_correct / prompt_total if prompt_total else 0.0,
+        "instruction_accuracy": inst_correct / inst_total if inst_total else 0.0,
+    }
