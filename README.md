@@ -55,11 +55,10 @@ print(f"Loose accuracy: {loose_accuracy}")
 ```
 
 ### Using Default Datasets from HuggingFace
-
 ```python
 from ifeval.core.evaluation import Evaluator
 from ifeval.languages.en.instructions import instruction_registry
-from ifeval.datasets import get_default_dataset
+from ifeval.utils.huggingface import get_default_dataset
 
 # Create evaluator
 evaluator = Evaluator(instruction_registry)
