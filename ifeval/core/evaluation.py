@@ -274,12 +274,85 @@ class Evaluator:
             print(f"{result_key} Accuracy Scores:")
             print(f"Prompt-level accuracy: {metrics['prompt_accuracy']:.4f} ({metrics['prompt_correct']}/{metrics['prompt_total']})")
             print(f"Instruction-level accuracy: {metrics['instruction_accuracy']:.4f} ({metrics['instruction_correct']}/{metrics['instruction_total']})")
-            
+
             print("\nCategory-level accuracies:")
             for category, accuracy in metrics['category_accuracy'].items():
                 print(f"  {category}: {accuracy:.4f}")
-            
+
             print("\nInstruction-type accuracies:")
             for instruction_type, accuracy in metrics['instruction_accuracy_by_type'].items():
                 print(f"  {instruction_type}: {accuracy:.4f}")
             print()
+
+    def evaluate_pass_at_k_hard(
+        self,
+        input_examples: List[InputExample],
+        responses: Dict[str, List[str]],
+    ) -> float:
+        """
+        Hard estimator of pass@k: treats k as the number of provided responses per prompt.
+
+        Returns the fraction of prompts for which at least one response follows all instructions.
+        """
+        total, count = 0.0, 0
+        for inp in input_examples:
+            resp_list = responses.get(inp.prompt)
+            if resp_list is None:
+                continue
+            correct = 0
+            for r in resp_list:
+                out = self.test_instruction_following_strict(inp, r)
+                if out.follow_all_instructions:
+                    correct += 1
+            total += 1.0 if correct > 0 else 0.0
+            count += 1
+        return total / count if count else 0.0
+
+    def evaluate_pass_at_k(
+        self,
+        input_examples: List[InputExample],
+        responses: Dict[str, List[str]],
+        k: int,
+    ) -> float:
+        """
+        Smooth estimator of pass@k using the numerically stable formula:
+
+            pass@k = 1 - \prod_{i=n-c+1}^n (1 - k / i)
+
+        where n is the total number of responses and c is the number of correct responses.
+        """
+        total, count = 0.0, 0
+        for inp in input_examples:
+            resp_list = responses.get(inp.prompt)
+            if resp_list is None:
+                continue
+            n = len(resp_list)
+            correct = 0
+            for r in resp_list:
+                out = self.test_instruction_following_strict(inp, r)
+                if out.follow_all_instructions:
+                    correct += 1
+            total += pass_at_k(n, correct, k)
+            count += 1
+        return total / count if count else 0.0
+
+def pass_at_k(n: int, c: int, k: int) -> float:
+    """
+    Numerically stable pass@k estimator:
+
+        pass@k = 1 - \prod_{i=n-c+1}^n (1 - k / i)
+
+    Args:
+        n: Total number of sampled responses per prompt.
+        c: Number of correct responses (following all instructions).
+        k: Number of samples to consider.
+
+    Returns:
+        Estimated pass@k value.
+    """
+    if n - c < k:
+        return 1.0
+    prod = 1.0
+    for i in range(n - c + 1, n + 1):
+        prod *= 1.0 - k / i
+    return 1.0 - prod

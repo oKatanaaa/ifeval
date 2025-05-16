@@ -60,6 +60,27 @@ def read_responses(input_jsonl_filename: str) -> Dict[str, str]:
             return_dict[example["prompt"]] = example["response"]
     return return_dict
 
+def read_responses_list(input_jsonl_filename: str) -> Dict[str, List[str]]:
+    """Create a dictionary mapping prompts to multiple responses from a JSONL file.
+
+    Args:
+        input_jsonl_filename: Path to the input JSONL file.
+
+    Returns:
+        A dictionary mapping prompts to list of responses.
+    """
+    return_dict: Dict[str, List[str]] = {}
+    with open(input_jsonl_filename, "r", encoding="utf-8") as f:
+        for line in f:
+            example = json.loads(line)
+            responses = example.get("responses")
+            if responses is None:
+                raise ValueError(f"No 'responses' field found in line: {line.strip()}")
+            if not isinstance(responses, list):
+                raise ValueError(f"'responses' field must be a list in line: {line.strip()}")
+            return_dict[example["prompt"]] = responses
+    return return_dict
+
 def write_outputs(output_jsonl_filename: str, outputs: List[OutputExample]) -> None:
     """Write outputs to a JSONL file.
     

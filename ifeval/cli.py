@@ -12,7 +12,7 @@ from ifeval.core.registry import InstructionRegistry
 from ifeval.languages.en.instructions import instruction_registry as en_registry
 from ifeval.languages.ru.instructions import instruction_registry as ru_registry
 from ifeval.utils.config import Config
-from ifeval.utils.io import read_input_examples, read_responses, write_outputs
+from ifeval.utils.io import read_input_examples, read_responses, read_responses_list, write_outputs
 from ifeval.utils.huggingface import get_default_dataset
 
 
@@ -73,6 +73,18 @@ def parse_args() -> argparse.Namespace:
         help="Use legacy evaluation mode."
     )
 
+    parser.add_argument(
+        "--pass_k_hard",
+        action="store_true",
+        help="Compute hard pass@k estimator (counts prompt correct if any provided response follows instructions)."
+    )
+    parser.add_argument(
+        "--pass_k",
+        type=int,
+        default=None,
+        help="Compute smooth pass@k estimator with given k using multiple responses per prompt."
+    )
+
     return parser.parse_args()
 
 
@@ -107,6 +119,10 @@ def load_config(args: argparse.Namespace) -> Config:
     
     if args.output_dir:
         config_dict["output_dir"] = args.output_dir
+    if args.pass_k_hard:
+        config_dict["pass_k_hard"] = True
+    if args.pass_k is not None:
+        config_dict["pass_k"] = args.pass_k
     
     return Config.from_dict(config_dict)
 
@@ -221,7 +237,32 @@ def main() -> None:
     # Log results
     logging.info(f"Strict accuracy: {strict_accuracy:.4f}")
     logging.info(f"Loose accuracy: {loose_accuracy:.4f}")
-    
+
+    # pass@k evaluation (requires responses JSONL with 'responses' lists)
+    if config.pass_k_hard or config.pass_k is not None:
+        logging.info("Running pass@k evaluation...")
+        registry = get_registry_for_language(config.language)
+        evaluator_pk = Evaluator(registry)
+        # Reload input examples for pass@k
+        if config.input_data_path:
+            input_examples_pk = read_input_examples(config.input_data_path)
+        else:
+            input_examples_pk = get_default_dataset(config.language)
+        # Load multiple responses per prompt
+        responses_list = read_responses_list(config.input_response_path)
+        # Hard estimator: any correct response counts as pass
+        if config.pass_k_hard:
+            hard_score = evaluator_pk.evaluate_pass_at_k_hard(
+                input_examples_pk, responses_list
+            )
+            logging.info(f"Hard pass@k: {hard_score:.4f}")
+        # Smooth estimator: requires k
+        if config.pass_k is not None:
+            smooth_score = evaluator_pk.evaluate_pass_at_k(
+                input_examples_pk, responses_list, k=config.pass_k
+            )
+            logging.info(f"Smooth pass@{config.pass_k}: {smooth_score:.4f}")
+
     # Return success
     return 0
 

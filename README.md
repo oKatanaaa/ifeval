@@ -91,6 +91,16 @@ python -m ifeval.cli \
     --output_dir path/to/output_dir \
     --language ru \  # Use Russian dataset
     --verbose
+
+# pass@k evaluation with multiple responses per prompt
+python -m ifeval.cli \
+    --input_data path/to/prompts.jsonl \
+    --input_response_data path/to/responses_with_lists.jsonl \
+    --output_dir path/to/output_dir \
+    --language en \
+    --pass_k_hard \
+    --pass_k 5 \
+    --verbose
 ```
 
 ### Data Format
@@ -116,6 +126,15 @@ The response data should be a JSONL file with each line containing a JSON object
 {
   "prompt": "Write a 300+ word summary...",
   "response": "This is the model's response..."
+}
+```
+
+You can also supply multiple responses per prompt to compute pass@k metrics:
+
+```json
+{
+  "prompt": "Write a 300+ word summary...",
+  "responses": ["This is response 1...", "This is response 2...", ...]
 }
 ```
 
@@ -165,6 +184,29 @@ IFEval currently supports the following instruction types for English:
 
 - **Punctuation**:
   - `punctuation:no_comma`: Check absence of commas
+
+## pass@k Evaluation
+
+pass@k measures the probability that at least one out of k sampled responses follows all instructions.
+
+### Python API
+
+```python
+from ifeval.core.evaluation import Evaluator
+from ifeval.languages.en.instructions import instruction_registry
+from ifeval.utils.io import read_input_examples, read_responses_list
+
+evaluator = Evaluator(instruction_registry)
+input_examples = read_input_examples("prompts.jsonl")
+responses = read_responses_list("responses.jsonl")
+
+hard_score = evaluator.evaluate_pass_at_k_hard(input_examples, responses)
+smooth_score = evaluator.evaluate_pass_at_k(input_examples, responses, k=5)
+print(f"Hard pass@5: {hard_score:.4f}")
+print(f"Smooth pass@5: {smooth_score:.4f}")
+```
+
+See `examples/pass_at_k_example.py` for a runnable demonstration.
 
 ## Extending the Framework
 
