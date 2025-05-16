@@ -46,12 +46,14 @@ def main():
     evaluator = Evaluator(instruction_registry)
     # Hard estimator (k = number of provided responses)
     n = len(responses[next(iter(responses))])
-    hard_score = evaluator.evaluate_pass_at_k_hard(input_examples, responses)
+    report_hard, outputs_hard = evaluator.evaluate_pass_at_k_hard(input_examples, responses)
+    hard_score = report_hard["eval_results_strict"]["prompt_accuracy"]
     print(f"Hard pass@{n}: {hard_score:.4f}")
 
     # Smooth estimator for different k values
     for k in [1, 2]:
-        smooth_score = evaluator.evaluate_pass_at_k(input_examples, responses, k=k)
+        report_smooth, outputs_smooth = evaluator.evaluate_pass_at_k(input_examples, responses, k=k)
+        smooth_score = report_smooth["eval_results_loose"]["prompt_accuracy"]
         print(f"Smooth pass@{k}: {smooth_score:.4f}")
 
 

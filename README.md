@@ -191,7 +191,7 @@ pass@k measures the probability that at least one out of k sampled responses fol
 ### Python API
 
 ```python
-from ifeval.core.evaluation import Evaluator, evaluate_pass_at_k_metrics
+from ifeval.core.evaluation import Evaluator
 from ifeval.languages.en.instructions import instruction_registry
 from ifeval.utils.io import read_input_examples, read_responses_list
 
@@ -203,21 +203,17 @@ responses = read_responses_list("responses.jsonl")
 evaluator = Evaluator(instruction_registry)
 
 # Hard pass@k metrics (prompt correct if any response follows instructions)
-metrics_hard = evaluate_pass_at_k_metrics(
-    instruction_registry, input_examples, responses, k=1, smooth=False
-)
+report_hard, outputs_hard = evaluator.evaluate_pass_at_k_hard(input_examples, responses)
 print(
-    f"pass@k hard prompt_accuracy: {metrics_hard['prompt_accuracy']:.4f}, "
-    f"instruction_accuracy: {metrics_hard['instruction_accuracy']:.4f}"
+    f"pass@k hard prompt_accuracy: {report_hard['eval_results_strict']['prompt_accuracy']:.4f}, "
+    f"instruction_accuracy: {report_hard['eval_results_strict']['instruction_accuracy']:.4f}"
 )
 
 # Smooth pass@5 metrics
-metrics_smooth = evaluate_pass_at_k_metrics(
-    instruction_registry, input_examples, responses, k=5, smooth=True
-)
+report_smooth, outputs_smooth = evaluator.evaluate_pass_at_k(input_examples, responses, k=5)
 print(
-    f"pass@5 smooth prompt_accuracy: {metrics_smooth['prompt_accuracy']:.4f}, "
-    f"instruction_accuracy: {metrics_smooth['instruction_accuracy']:.4f}"
+    f"pass@5 smooth prompt_accuracy: {report_smooth['eval_results_loose']['prompt_accuracy']:.4f}, "
+    f"instruction_accuracy: {report_smooth['eval_results_loose']['instruction_accuracy']:.4f}"
 )
 ```
 

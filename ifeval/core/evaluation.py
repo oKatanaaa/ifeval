@@ -29,6 +29,16 @@ class OutputExample:
     follow_instruction_list: List[bool]
 
 
+@dataclasses.dataclass
+class PassAtKExample:
+    """Pass@k analysis results for a single prompt."""
+    instruction_id_list: List[str]
+    prompt: str
+    responses: List[str]
+    pass_at_k_score_strict: float
+    pass_at_k_score_loose: float
+
+
 class Evaluator:
     """Main evaluator for instruction following."""
     
@@ -288,56 +298,171 @@ class Evaluator:
         self,
         input_examples: List[InputExample],
         responses: Dict[str, List[str]],
-    ) -> float:
-        """
-        Hard estimator of pass@k: treats k as the number of provided responses per prompt.
+    ) -> Tuple[Dict[str, Dict[str, float]], List[PassAtKExample]]:
+        """Hard estimator of pass@k: treats k as the number of provided responses per prompt.
 
-        Returns the fraction of prompts for which at least one response follows all instructions.
+        Args:
+            input_examples: List of InputExample objects.
+            responses: Mapping from prompt to list of responses.
+
+        Returns:
+            A tuple of (report, outputs) where:
+                report: Dict with 'eval_results_strict' and 'eval_results_loose' keys containing prompt and instruction accuracy.
+                outputs: List of PassAtKExample objects with per-prompt analysis.
         """
-        total, count = 0.0, 0
+        strict_prompt_total = strict_prompt_correct = 0.0
+        loose_prompt_total = loose_prompt_correct = 0.0
+        strict_inst_total = strict_inst_correct = 0.0
+        loose_inst_total = loose_inst_correct = 0.0
+        outputs: List[PassAtKExample] = []
+
         for inp in input_examples:
             resp_list = responses.get(inp.prompt)
             if resp_list is None:
                 continue
-            correct = 0
+            # Count per-instruction correct responses
+            c_strict: List[int] = [0] * len(inp.instruction_id_list)
+            c_loose: List[int] = [0] * len(inp.instruction_id_list)
+            passed_strict = passed_loose = False
+
             for r in resp_list:
-                out = self.test_instruction_following_strict(inp, r)
-                if out.follow_all_instructions:
-                    correct += 1
-            total += 1.0 if correct > 0 else 0.0
-            count += 1
-        return total / count if count else 0.0
+                out_s = self.test_instruction_following_strict(inp, r)
+                if out_s.follow_all_instructions:
+                    passed_strict = True
+                for idx, ok in enumerate(out_s.follow_instruction_list):
+                    if ok:
+                        c_strict[idx] += 1
+
+                out_l = self.test_instruction_following_loose(inp, r)
+                if out_l.follow_all_instructions:
+                    passed_loose = True
+                for idx, ok in enumerate(out_l.follow_instruction_list):
+                    if ok:
+                        c_loose[idx] += 1
+
+            score_strict = 1.0 if passed_strict else 0.0
+            score_loose = 1.0 if passed_loose else 0.0
+
+            outputs.append(
+                PassAtKExample(
+                    instruction_id_list=inp.instruction_id_list,
+                    prompt=inp.prompt,
+                    responses=resp_list,
+                    pass_at_k_score_strict=score_strict,
+                    pass_at_k_score_loose=score_loose,
+                )
+            )
+
+            strict_prompt_total += 1
+            strict_prompt_correct += score_strict
+            loose_prompt_total += 1
+            loose_prompt_correct += score_loose
+
+            for idx in range(len(inp.instruction_id_list)):
+                strict_inst_total += 1
+                if c_strict[idx] > 0:
+                    strict_inst_correct += 1
+                loose_inst_total += 1
+                if c_loose[idx] > 0:
+                    loose_inst_correct += 1
+
+        metrics_strict = {
+            "prompt_accuracy": strict_prompt_correct / strict_prompt_total if strict_prompt_total else 0.0,
+            "instruction_accuracy": strict_inst_correct / strict_inst_total if strict_inst_total else 0.0,
+        }
+        metrics_loose = {
+            "prompt_accuracy": loose_prompt_correct / loose_prompt_total if loose_prompt_total else 0.0,
+            "instruction_accuracy": loose_inst_correct / loose_inst_total if loose_inst_total else 0.0,
+        }
+        report = {"eval_results_strict": metrics_strict, "eval_results_loose": metrics_loose}
+        return report, outputs
 
     def evaluate_pass_at_k(
         self,
         input_examples: List[InputExample],
         responses: Dict[str, List[str]],
         k: int,
-    ) -> float:
-        """
-        Smooth estimator of pass@k using the numerically stable formula:
+    ) -> Tuple[Dict[str, Dict[str, float]], List[PassAtKExample]]:
+        r"""Smooth estimator of pass@k using the numerically stable formula:
 
             pass@k = 1 - \prod_{i=n-c+1}^n (1 - k / i)
 
-        where n is the total number of responses and c is the number of correct responses.
+        Args:
+            input_examples: List of InputExample objects.
+            responses: Mapping from prompt to list of responses.
+            k: Number of samples to consider in pass@k.
+
+        Returns:
+            A tuple of (report, outputs) where:
+                report: Dict with 'eval_results_strict' and 'eval_results_loose' keys containing prompt and instruction accuracy.
+                outputs: List of PassAtKExample objects with per-prompt analysis.
         """
-        total, count = 0.0, 0
+        strict_prompt_total = strict_prompt_correct = 0.0
+        loose_prompt_total = loose_prompt_correct = 0.0
+        strict_inst_total = strict_inst_correct = 0.0
+        loose_inst_total = loose_inst_correct = 0.0
+        outputs: List[PassAtKExample] = []
+
         for inp in input_examples:
             resp_list = responses.get(inp.prompt)
             if resp_list is None:
                 continue
             n = len(resp_list)
-            correct = 0
+            c_strict: List[int] = [0] * len(inp.instruction_id_list)
+            c_loose: List[int] = [0] * len(inp.instruction_id_list)
             for r in resp_list:
-                out = self.test_instruction_following_strict(inp, r)
-                if out.follow_all_instructions:
-                    correct += 1
-            total += pass_at_k(n, correct, k)
-            count += 1
-        return total / count if count else 0.0
+                out_s = self.test_instruction_following_strict(inp, r)
+                for idx, ok in enumerate(out_s.follow_instruction_list):
+                    if ok:
+                        c_strict[idx] += 1
+                out_l = self.test_instruction_following_loose(inp, r)
+                for idx, ok in enumerate(out_l.follow_instruction_list):
+                    if ok:
+                        c_loose[idx] += 1
+            # Compute pass@k scores per prompt
+            pass_strict = pass_at_k(
+                n,
+                sum(1 for r in resp_list if self.test_instruction_following_strict(inp, r).follow_all_instructions),
+                k,
+            )
+            pass_loose = pass_at_k(
+                n,
+                sum(1 for r in resp_list if self.test_instruction_following_loose(inp, r).follow_all_instructions),
+                k,
+            )
+
+            outputs.append(
+                PassAtKExample(
+                    instruction_id_list=inp.instruction_id_list,
+                    prompt=inp.prompt,
+                    responses=resp_list,
+                    pass_at_k_score_strict=pass_strict,
+                    pass_at_k_score_loose=pass_loose,
+                )
+            )
+            strict_prompt_total += 1
+            strict_prompt_correct += pass_strict
+            loose_prompt_total += 1
+            loose_prompt_correct += pass_loose
+            for idx in range(len(inp.instruction_id_list)):
+                strict_inst_total += 1
+                strict_inst_correct += pass_at_k(n, c_strict[idx], k)
+                loose_inst_total += 1
+                loose_inst_correct += pass_at_k(n, c_loose[idx], k)
+
+        metrics_strict = {
+            "prompt_accuracy": strict_prompt_correct / strict_prompt_total if strict_prompt_total else 0.0,
+            "instruction_accuracy": strict_inst_correct / strict_inst_total if strict_inst_total else 0.0,
+        }
+        metrics_loose = {
+            "prompt_accuracy": loose_prompt_correct / loose_prompt_total if loose_prompt_total else 0.0,
+            "instruction_accuracy": loose_inst_correct / loose_inst_total if loose_inst_total else 0.0,
+        }
+        report = {"eval_results_strict": metrics_strict, "eval_results_loose": metrics_loose}
+        return report, outputs
 
 def pass_at_k(n: int, c: int, k: int) -> float:
-    """
+    r"""
     Numerically stable pass@k estimator:
 
         pass@k = 1 - \prod_{i=n-c+1}^n (1 - k / i)
@@ -356,54 +481,3 @@ def pass_at_k(n: int, c: int, k: int) -> float:
     for i in range(n - c + 1, n + 1):
         prod *= 1.0 - k / i
     return 1.0 - prod
-
-def evaluate_pass_at_k_metrics(
-    registry: InstructionRegistry,
-    input_examples: List[InputExample],
-    responses: Dict[str, List[str]],
-    k: int,
-    smooth: bool = False,
-) -> Dict[str, float]:
-    """
-    Compute prompt and instruction accuracy under a pass@k scheme.
-
-    Args:
-        registry: Instruction registry for creating instruction checkers.
-        input_examples: List of InputExample objects.
-        responses: Mapping from prompt to list of responses.
-        k: Number of samples to consider in pass@k.
-        smooth: If True, use smooth (probabilistic) estimator; else hard.
-
-    Returns:
-        Dict with 'prompt_accuracy' and 'instruction_accuracy'.
-    """
-    prompt_total = 0
-    prompt_correct = 0
-    inst_total = 0
-    inst_correct = 0.0
-
-    for inp in input_examples:
-        resp_list = responses.get(inp.prompt)
-        if resp_list is None:
-            continue
-        n = len(resp_list)
-        passed_prompt = False
-        for idx, instruction_id in enumerate(inp.instruction_id_list):
-            instr = registry.create_instruction(instruction_id, **(inp.kwargs[idx] or {}))
-            c = sum(1 for r in resp_list if instr.check_following(r))
-            if smooth:
-                score = pass_at_k(n, c, k)
-            else:
-                score = 1.0 if c > 0 else 0.0
-            inst_correct += score
-            inst_total += 1
-            if c > 0:
-                passed_prompt = True
-        prompt_total += 1
-        if passed_prompt:
-            prompt_correct += 1
-
-    return {
-        "prompt_accuracy": prompt_correct / prompt_total if prompt_total else 0.0,
-        "instruction_accuracy": inst_correct / inst_total if inst_total else 0.0,
-    }
