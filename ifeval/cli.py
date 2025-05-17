@@ -216,6 +216,52 @@ def run_evaluation(config: Config) -> Tuple[float, float]:
     loose_metrics = report.get("eval_results_loose", {})
     return strict_metrics.get("prompt_accuracy", 0.0), loose_metrics.get("prompt_accuracy", 0.0)
 
+def run_pass_at_k(config: Config) -> None:
+    """Run pass@k evaluation, writing reports and outputs."""
+    os.makedirs(config.output_dir, exist_ok=True)
+    logging.info("Running pass@k evaluation...")
+    registry = get_registry_for_language(config.language)
+    if getattr(config, "input_data_path", None):
+        input_examples = read_input_examples(config.input_data_path)
+        logging.info(f"Loaded input examples from {config.input_data_path}")
+    else:
+        input_examples = get_default_dataset(config.language)
+        logging.info(f"Using default dataset for language: {config.language}")
+    responses_list = read_responses_list(config.input_response_path)
+    evaluator = Evaluator(registry)
+
+    metrics: Dict[str, Any] = {}
+    if config.pass_k_hard:
+        report_hard, outputs_hard = evaluator.evaluate_pass_at_k_hard(input_examples, responses_list)
+        strict = report_hard.get("eval_results_strict", {})
+        logging.info(
+            f"pass@k hard prompt_accuracy: {strict.get('prompt_accuracy', 0.0):.4f}, "
+            f"instruction_accuracy: {strict.get('instruction_accuracy', 0.0):.4f}"
+        )
+        if config.output_dir:
+            hard_out = os.path.join(config.output_dir, "pass_at_k_hard.jsonl")
+            write_outputs(hard_out, outputs_hard)
+            logging.info(f"Generated: {hard_out}")
+        metrics["pass_at_k_hard"] = report_hard
+
+    if config.pass_k is not None:
+        report_smooth, outputs_smooth = evaluator.evaluate_pass_at_k(input_examples, responses_list, k=config.pass_k)
+        loose = report_smooth.get("eval_results_loose", {})
+        logging.info(
+            f"pass@{config.pass_k} smoothed prompt_accuracy: {loose.get('prompt_accuracy', 0.0):.4f}, "
+            f"instruction_accuracy: {loose.get('instruction_accuracy', 0.0):.4f}"
+        )
+        if config.output_dir:
+            smooth_out = os.path.join(config.output_dir, f"pass_at_{config.pass_k}.jsonl")
+            write_outputs(smooth_out, outputs_smooth)
+            logging.info(f"Generated: {smooth_out}")
+        metrics[f"pass_at_{config.pass_k}"] = report_smooth
+
+    if config.output_dir and metrics:
+        metrics_path = os.path.join(config.output_dir, "pass_at_k_metrics_report.json")
+        with open(metrics_path, "w") as f:
+            json.dump(metrics, f, indent=4)
+        logging.info(f"Generated: {metrics_path}")
 
 def main() -> None:
     """Main entry point."""
@@ -231,42 +277,15 @@ def main() -> None:
     # Log configuration
     logging.info(f"Configuration: {config}")
     
-    # Run evaluation
-    strict_accuracy, loose_accuracy = run_evaluation(config)
-    
-    # Log results
-    logging.info(f"Strict accuracy: {strict_accuracy:.4f}")
-    logging.info(f"Loose accuracy: {loose_accuracy:.4f}")
+    # Standard strict/loose evaluation (skip if only pass@k requested)
+    if not config.pass_k_hard and config.pass_k is None:
+        strict_accuracy, loose_accuracy = run_evaluation(config)
+        logging.info(f"Strict accuracy: {strict_accuracy:.4f}")
+        logging.info(f"Loose accuracy: {loose_accuracy:.4f}")
 
     # pass@k evaluation (requires responses JSONL with 'responses' lists)
     if config.pass_k_hard or config.pass_k is not None:
-        logging.info("Running pass@k evaluation...")
-        registry = get_registry_for_language(config.language)
-        # Reload input examples
-        if getattr(config, 'input_data_path', None):
-            input_examples_pk = read_input_examples(config.input_data_path)
-        else:
-            input_examples_pk = get_default_dataset(config.language)
-        # Load multiple responses per prompt
-        responses_list = read_responses_list(config.input_response_path)
-        # Initialize evaluator for pass@k
-        evaluator_pk = Evaluator(registry)
-        # Hard pass@k: any one response follows all instructions
-        if config.pass_k_hard:
-            report_hard, _ = evaluator_pk.evaluate_pass_at_k_hard(input_examples_pk, responses_list)
-            strict = report_hard.get('eval_results_strict', {})
-            logging.info(
-                f"pass@k hard prompt_accuracy: {strict.get('prompt_accuracy', 0.0):.4f}, "
-                f"instruction_accuracy: {strict.get('instruction_accuracy', 0.0):.4f}"
-            )
-        # Smoothed pass@k with k samples per prompt
-        if config.pass_k is not None:
-            report_smooth, _ = evaluator_pk.evaluate_pass_at_k(input_examples_pk, responses_list, k=config.pass_k)
-            loose = report_smooth.get('eval_results_loose', {})
-            logging.info(
-                f"pass@{config.pass_k} smoothed prompt_accuracy: {loose.get('prompt_accuracy', 0.0):.4f}, "
-                f"instruction_accuracy: {loose.get('instruction_accuracy', 0.0):.4f}"
-            )
+        run_pass_at_k(config)
 
     # Return success
     return 0
