@@ -16,6 +16,10 @@ With IFEval, you can:
 - Use default benchmark datasets or your own custom data
 - Compute pass@k and smoothed pass@k metrics (using the estimator from the _Evaluating Large Language Models Trained on Code_ paper)
 
+Supported languages:
+- English
+- Russian
+
 ## Installation
 
 ```bash
@@ -32,9 +36,10 @@ pip install .
 ### Basic Usage (Python API)
 
 ```python
-from ifeval.core.evaluation import Evaluator, InputExample
-from ifeval.languages.en.instructions import instruction_registry
-from ifeval.utils.io import read_input_examples, read_responses
+from ifeval import Evaluator, InputExample, instruction_registry, read_input_examples, read_responses
+
+# For Russian instructions, use the Russian registry:
+from ifeval import ru_instruction_registry
 
 # Initialize evaluator
 evaluator = Evaluator(instruction_registry)
@@ -52,7 +57,7 @@ print("Loose prompt accuracy:", report["eval_results_loose"]["prompt_accuracy"])
 ### Pass@k Evaluation (Python API)
 
 ```python
-from ifeval.utils.io import read_responses_list
+from ifeval import read_responses_list
 
 # Load multiple responses per prompt
 responses_list = read_responses_list("path/to/responses.jsonl")
@@ -68,9 +73,12 @@ print("pass@5 smoothed prompt accuracy:", report_smooth["eval_results_loose"]["p
 
 ### Using Default Datasets from HuggingFace
 ```python
-from ifeval.core.evaluation import Evaluator
-from ifeval.languages.en.instructions import instruction_registry
-from ifeval.utils.huggingface import get_default_dataset
+from ifeval import Evaluator, instruction_registry, get_default_dataset
+
+# For Russian datasets and instructions:
+from ifeval import ru_instruction_registry
+# input_examples_ru = get_default_dataset("ru")
+# report_ru, outputs_ru = Evaluator(ru_instruction_registry).evaluate(input_examples_ru, responses)
 
 # Create evaluator
 evaluator = Evaluator(instruction_registry)

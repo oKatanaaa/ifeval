@@ -28,6 +28,11 @@ from ifeval.languages import (
 )
 from ifeval.utils import Config
 
+from ifeval.utils.io import read_input_examples, read_responses, read_responses_list, write_outputs
+from ifeval.utils.huggingface import get_default_dataset
+from ifeval.languages.en.instructions import instruction_registry
+from ifeval.languages.ru.instructions import instruction_registry as ru_instruction_registry
+
 __version__ = "0.1.0"
 
 __all__ = [
@@ -57,4 +62,11 @@ __all__ = [
     
     # Utils
     'Config',
+    'read_input_examples',
+    'read_responses',
+    'read_responses_list',
+    'write_outputs',
+    'get_default_dataset',
+    'instruction_registry',
+    'ru_instruction_registry',
 ]
