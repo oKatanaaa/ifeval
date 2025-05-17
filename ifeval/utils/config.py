@@ -22,6 +22,10 @@ class Config:
     # Logging settings
     verbose: bool = False
     
+    # pass@k evaluation settings
+    pass_k_hard: bool = False
+    pass_k: int | None = None
+    
     # Extra settings
     extra: Dict[str, Any] = field(default_factory=dict)
     

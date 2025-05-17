@@ -4,16 +4,19 @@ import functools
 import re
 from typing import List
 
-from ftlangdetect import detect
 import nltk
 from nltk.tokenize import RegexpTokenizer
-from pymorphy2 import MorphAnalyzer
+# Optional pymorphy2 import for lemmatization; provide fallback if unavailable
+try:
+    from pymorphy2 import MorphAnalyzer
+except ImportError:
+    MorphAnalyzer = None
 
 from ifeval.languages.language_processor import BaseLanguageProcessor
 from ifeval.languages.language_registry import LanguageRegistry
 
-# Initialize the morphological analyzer
-morph = MorphAnalyzer()
+# Initialize the morphological analyzer if available
+morph = MorphAnalyzer() if MorphAnalyzer is not None else None
 
 # Patterns for sentence splitting
 _ALPHABETS = "([А-Яа-яA-Za-z])"
