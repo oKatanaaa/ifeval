@@ -7,7 +7,7 @@ import os
 import sys
 from typing import List, Dict, Any, Optional, Tuple
 
-from ifeval.core.evaluation import Evaluator, InputExample, evaluate_pass_at_k_metrics
+from ifeval.core.evaluation import Evaluator, InputExample
 from ifeval.core.registry import InstructionRegistry
 from ifeval.languages.en.instructions import instruction_registry as en_registry
 from ifeval.languages.ru.instructions import instruction_registry as ru_registry
@@ -240,32 +240,32 @@ def main() -> None:
 
     # pass@k evaluation (requires responses JSONL with 'responses' lists)
     if config.pass_k_hard or config.pass_k is not None:
-        logging.info("Running pass@k metrics evaluation...")
+        logging.info("Running pass@k evaluation...")
         registry = get_registry_for_language(config.language)
         # Reload input examples
-        if config.input_data_path:
+        if getattr(config, 'input_data_path', None):
             input_examples_pk = read_input_examples(config.input_data_path)
         else:
             input_examples_pk = get_default_dataset(config.language)
         # Load multiple responses per prompt
         responses_list = read_responses_list(config.input_response_path)
-        # Hard pass@k (any correct response)
+        # Initialize evaluator for pass@k
+        evaluator_pk = Evaluator(registry)
+        # Hard pass@k: any one response follows all instructions
         if config.pass_k_hard:
-            metrics = evaluate_pass_at_k_metrics(
-                registry, input_examples_pk, responses_list, k=1, smooth=False
-            )
+            report_hard, _ = evaluator_pk.evaluate_pass_at_k_hard(input_examples_pk, responses_list)
+            strict = report_hard.get('eval_results_strict', {})
             logging.info(
-                f"pass@k hard prompt_accuracy: {metrics['prompt_accuracy']:.4f}, "
-                f"instruction_accuracy: {metrics['instruction_accuracy']:.4f}"
+                f"pass@k hard prompt_accuracy: {strict.get('prompt_accuracy', 0.0):.4f}, "
+                f"instruction_accuracy: {strict.get('instruction_accuracy', 0.0):.4f}"
             )
-        # Smooth pass@k (requires k)
+        # Smoothed pass@k with k samples per prompt
         if config.pass_k is not None:
-            metrics = evaluate_pass_at_k_metrics(
-                registry, input_examples_pk, responses_list, k=config.pass_k, smooth=True
-            )
+            report_smooth, _ = evaluator_pk.evaluate_pass_at_k(input_examples_pk, responses_list, k=config.pass_k)
+            loose = report_smooth.get('eval_results_loose', {})
             logging.info(
-                f"pass@{config.pass_k} smooth prompt_accuracy: {metrics['prompt_accuracy']:.4f}, "
-                f"instruction_accuracy: {metrics['instruction_accuracy']:.4f}"
+                f"pass@{config.pass_k} smoothed prompt_accuracy: {loose.get('prompt_accuracy', 0.0):.4f}, "
+                f"instruction_accuracy: {loose.get('instruction_accuracy', 0.0):.4f}"
             )
 
     # Return success
