@@ -33,7 +33,7 @@ from ifeval.utils.huggingface import get_default_dataset
 from ifeval.languages.en.instructions import instruction_registry
 from ifeval.languages.ru.instructions import instruction_registry as ru_instruction_registry
 
-__version__ = "0.1.0"
+__version__ = "1.1.0"
 
 __all__ = [
     # Core

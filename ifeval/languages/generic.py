@@ -647,4 +647,4 @@ class ResponseLanguageChecker(BaseInstruction):
                 # Count as instruction is followed.
                 return True
             else:
-                False
+                return False
